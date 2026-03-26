@@ -798,7 +798,7 @@ def open_portal():
     stack.setCurrentIndex(index)
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    portal_path = os.path.join(base_dir, "proxy.html")
+    portal_path = os.path.join(base_dir, "chess.html")
     webview.load(QUrl.fromLocalFile(portal_path))
 
 def open_pomodoro():
