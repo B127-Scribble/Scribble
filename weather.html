@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scribble Weather</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: #0d0d0f;
+            color: #e8e8f0;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        #search-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            width: 100%;
+        }
+        #weather-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            gap: 20px;
+        }
+        #title {
+            font-size: 48px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #6c63ff, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+        }
+        #search-bar {
+            display: flex;
+            gap: 0;
+            width: 440px;
+        }
+        #city-input {
+            flex: 1;
+            background-color: #1e1e28;
+            color: #e8e8f0;
+            border: 1.5px solid #6c63ff;
+            border-right: none;
+            border-radius: 12px 0 0 12px;
+            padding: 12px 20px;
+            font-size: 15px;
+            outline: none;
+        }
+        #search-btn {
+            background: linear-gradient(135deg, #6c63ff, #a78bfa);
+            color: white;
+            border: none;
+            border-radius: 0 12px 12px 0;
+            padding: 12px 20px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+        #search-btn:hover { background: #5a52d5; }
+        #error-msg {
+            color: #f87171;
+            font-size: 13px;
+            display: none;
+        }
+        #weather-card {
+            background-color: #1a1a1f;
+            border: 1px solid #2a2a35;
+            border-radius: 20px;
+            padding: 32px 48px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            min-width: 380px;
+        }
+        #city-name {
+            font-size: 22px;
+            font-weight: 600;
+            color: #a78bfa;
+        }
+        #weather-icon {
+            font-size: 72px;
+            margin: 8px 0;
+        }
+        #temp {
+            font-size: 64px;
+            font-weight: 200;
+            color: #e8e8f0;
+        }
+        #description {
+            font-size: 16px;
+            color: #6b6b80;
+            text-transform: capitalize;
+            margin-bottom: 16px;
+        }
+        #details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            width: 100%;
+        }
+        .detail-item {
+            background-color: #111115;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+        .detail-label {
+            font-size: 11px;
+            color: #6b6b80;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        .detail-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #e8e8f0;
+        }
+        #back-btn {
+            background-color: transparent;
+            color: #6b6b80;
+            border: 1px solid #2a2a35;
+            border-radius: 20px;
+            padding: 8px 20px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        #back-btn:hover { background-color: #1e1e28; color: #e8e8f0; }
+        #loading {
+            color: #6b6b80;
+            font-size: 14px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="search-screen">
+        <div id="title">🌤 Weather</div>
+        <div id="search-bar">
+            <input type="text" id="city-input" placeholder="Enter city name...">
+            <button id="search-btn">Search</button>
+        </div>
+        <div id="loading">Loading...</div>
+        <div id="error-msg">City not found. Try a different name.</div>
+    </div>
+
+    <div id="weather-screen">
+        <div id="weather-card">
+            <div id="city-name"></div>
+            <div id="weather-icon"></div>
+            <div id="temp"></div>
+            <div id="description"></div>
+            <div id="details">
+                <div class="detail-item">
+                    <div class="detail-label">Feels Like</div>
+                    <div class="detail-value" id="feels-like"></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Humidity</div>
+                    <div class="detail-value" id="humidity"></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Wind</div>
+                    <div class="detail-value" id="wind"></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Visibility</div>
+                    <div class="detail-value" id="visibility"></div>
+                </div>
+            </div>
+        </div>
+        <button id="back-btn" onclick="goBack()">← Search Again</button>
+    </div>
+
+    <script>
+        const WMO_CODES = {
+            0: ['Clear Sky', '☀️'],
+            1: ['Mainly Clear', '🌤'],
+            2: ['Partly Cloudy', '⛅'],
+            3: ['Overcast', '☁️'],
+            45: ['Foggy', '🌫'],
+            48: ['Icy Fog', '🌫'],
+            51: ['Light Drizzle', '🌦'],
+            53: ['Drizzle', '🌦'],
+            55: ['Heavy Drizzle', '🌧'],
+            61: ['Light Rain', '🌧'],
+            63: ['Rain', '🌧'],
+            65: ['Heavy Rain', '🌧'],
+            71: ['Light Snow', '🌨'],
+            73: ['Snow', '❄️'],
+            75: ['Heavy Snow', '❄️'],
+            80: ['Rain Showers', '🌦'],
+            81: ['Rain Showers', '🌧'],
+            82: ['Heavy Showers', '⛈'],
+            95: ['Thunderstorm', '⛈'],
+            96: ['Thunderstorm', '⛈'],
+            99: ['Thunderstorm', '⛈']
+        };
+
+        function goBack() {
+            document.getElementById('weather-screen').style.display = 'none';
+            document.getElementById('search-screen').style.display = 'flex';
+        }
+
+        function showWeather(data) {
+            const code = data.weatherCode;
+            const info = WMO_CODES[code] || ['Unknown', '🌡'];
+
+            document.getElementById('city-name').textContent = data.city;
+            document.getElementById('weather-icon').textContent = info[1];
+            document.getElementById('temp').textContent = Math.round(data.temp) + '°F';
+            document.getElementById('description').textContent = info[0];
+            document.getElementById('feels-like').textContent = Math.round(data.feelsLike) + '°F';
+            document.getElementById('humidity').textContent = data.humidity + '%';
+            document.getElementById('wind').textContent = Math.round(data.wind) + ' mph';
+            document.getElementById('visibility').textContent = data.visibility ? Math.round(data.visibility / 1609.34) + ' mi' : 'N/A';
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('search-screen').style.display = 'none';
+            document.getElementById('weather-screen').style.display = 'flex';
+        }
+
+        function showError() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error-msg').style.display = 'block';
+        }
+
+        function searchWeather() {
+            const city = document.getElementById('city-input').value.trim();
+            if (!city) return;
+            document.getElementById('error-msg').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+            console.log('SEARCHWEATHER:' + city);
+        }
+
+        document.getElementById('search-btn').addEventListener('click', searchWeather);
+        document.getElementById('city-input').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') searchWeather();
+        });
+    </script>
+</body>
+</html>
