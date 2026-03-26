@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Scribble Slides</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+    background:#0d0d0f;
+    color:#e8e8f0;
+    font-family:'Segoe UI',sans-serif;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    color-scheme:dark;
+}
+
+#top-bar{
+    background:#1a1a1f;
+    border-bottom:1px solid #2a2a35;
+    padding:8px 16px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+#pres-name{
+    font-size:16px;
+    font-weight:600;
+}
+
+#toolbar{
+    background:#111115;
+    border-bottom:1px solid #2a2a35;
+    padding:6px 12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+#toolbar button{
+    background:transparent;
+    color:#e8e8f0;
+    border:none;
+    border-radius:4px;
+    padding:4px 8px;
+    font-size:13px;
+    cursor:pointer;
+}
+
+#toolbar button:hover{
+    background:#2a2a35;
+}
+
+.custom-select {
+    position: relative;
+    display: inline-block;
+}
+.custom-select-trigger {
+    background-color: #1e1e28;
+    color: #e8e8f0;
+    border: 1px solid #2a2a35;
+    border-radius: 4px;
+    padding: 3px 24px 3px 6px;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    min-width: 60px;
+    position: relative;
+}
+.custom-select-trigger::after {
+    content: '▾';
+    position: absolute;
+    right: 6px;
+    font-size: 10px;
+    color: #6b6b80;
+}
+.custom-select-trigger:hover {
+    background-color: #2a2a35;
+}
+.custom-select.open .custom-select-trigger {
+    border-color: #6c63ff;
+}
+.custom-select-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 0;
+    background-color: #1e1e28;
+    border: 1px solid #2a2a35;
+    border-radius: 4px;
+    z-index: 1000;
+    min-width: 100%;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    overflow: hidden;
+}
+.custom-select.open .custom-select-dropdown {
+    display: block;
+}
+.custom-select-option {
+    padding: 5px 10px;
+    font-size: 13px;
+    color: #e8e8f0;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.custom-select-option:hover {
+    background-color: #2a2a35;
+}
+.custom-select-option.selected {
+    background-color: #6c63ff33;
+    color: #a09cf7;
+}
+
+.divider{
+    width:1px;
+    height:20px;
+    background:#2a2a35;
+    margin:0 4px;
+}
+
+#main-area{
+    flex:1;
+    display:flex;
+    overflow:hidden;
+}
+
+#slide-panel{
+    width:180px;
+    background:#111115;
+    border-right:1px solid #2a2a35;
+    overflow-y:auto;
+    padding:10px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+.add-slide-btn{
+    background:#6c63ff;
+    color:white;
+    border:none;
+    border-radius:6px;
+    padding:6px;
+    font-size:12px;
+    cursor:pointer;
+    width:100%;
+}
+
+.slide-thumbnail{
+    background:white;
+    border:2px solid #2a2a35;
+    border-radius:4px;
+    height:90px;
+    cursor:pointer;
+    position:relative;
+}
+
+.slide-thumbnail.active{
+    border-color:#6c63ff;
+}
+
+.slide-number{
+    position:absolute;
+    bottom:2px;
+    left:4px;
+    font-size:10px;
+    color:#6b6b80;
+}
+
+.delete-slide-btn{
+    position:absolute;
+    top:2px;
+    right:2px;
+    background:#f87171;
+    color:white;
+    border:none;
+    border-radius:3px;
+    width:16px;
+    height:16px;
+    font-size:10px;
+    cursor:pointer;
+}
+
+#canvas-area{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#0d0d0f;
+}
+
+#slide-canvas{
+    width:800px;
+    height:450px;
+    background:white;
+    position:relative;
+    box-shadow:0 4px 30px rgba(0,0,0,0.5);
+}
+</style>
+</head>
+
+<body>
+
+<div id="top-bar">
+<span id="pres-name">My Presentation</span>
+</div>
+
+<div id="toolbar">
+<button id="btn-add-text">+ Text</button>
+<button id="btn-add-image">+ Image</button>
+<input type="file" id="image-upload" accept="image/*" style="display:none">
+
+<div class="divider"></div>
+
+<!-- Custom font family dropdown -->
+<div class="custom-select" id="font-family-select">
+    <div class="custom-select-trigger" id="font-family-trigger">Segoe UI</div>
+    <div class="custom-select-dropdown" id="font-family-dropdown">
+        <div class="custom-select-option selected" data-value="Segoe UI">Segoe UI</div>
+        <div class="custom-select-option" data-value="Arial">Arial</div>
+        <div class="custom-select-option" data-value="Times New Roman">Times New Roman</div>
+        <div class="custom-select-option" data-value="Georgia">Georgia</div>
+        <div class="custom-select-option" data-value="Verdana">Verdana</div>
+    </div>
+</div>
+
+<!-- Custom font size dropdown -->
+<div class="custom-select" id="font-size-select">
+    <div class="custom-select-trigger" id="font-size-trigger">24</div>
+    <div class="custom-select-dropdown" id="font-size-dropdown">
+        <div class="custom-select-option" data-value="12">12</div>
+        <div class="custom-select-option" data-value="16">16</div>
+        <div class="custom-select-option selected" data-value="24">24</div>
+        <div class="custom-select-option" data-value="32">32</div>
+        <div class="custom-select-option" data-value="48">48</div>
+        <div class="custom-select-option" data-value="64">64</div>
+    </div>
+</div>
+
+<div class="divider"></div>
+
+<button id="btn-bold"><b>B</b></button>
+<button id="btn-italic"><i>I</i></button>
+<button id="btn-underline"><u>U</u></button>
+
+<div class="divider"></div>
+
+<label style="font-size:12px;">Text</label>
+<input type="color" id="text-color" value="#000000">
+
+<label style="font-size:12px;">Slide BG</label>
+<input type="color" id="bg-color" value="#ffffff">
+</div>
+
+<div id="main-area">
+<div id="slide-panel"></div>
+
+<div id="canvas-area">
+<div id="slide-canvas"></div>
+</div>
+</div>
+
+<script>
+
+const urlParams = new URLSearchParams(window.location.search);
+const presName = urlParams.get('name') || 'My Presentation';
+const presId = urlParams.get('id');
+
+document.getElementById('pres-name').textContent = presName;
+
+let slides = [];
+let currentSlideIndex = 0;
+let selectedElement = null;
+
+let currentFontFamily = 'Segoe UI';
+let currentFontSize = 24;
+
+
+function setupCustomSelect(selectId, triggerId, dropdownId, onChange) {
+    const selectEl   = document.getElementById(selectId);
+    const triggerEl  = document.getElementById(triggerId);
+    const dropdownEl = document.getElementById(dropdownId);
+
+    triggerEl.addEventListener('click', function(e) {
+        e.stopPropagation();
+        document.querySelectorAll('.custom-select.open').forEach(function(el) {
+            if (el !== selectEl) el.classList.remove('open');
+        });
+        selectEl.classList.toggle('open');
+    });
+
+    dropdownEl.addEventListener('click', function(e) {
+        const option = e.target.closest('.custom-select-option');
+        if (!option) return;
+        const value = option.dataset.value;
+        triggerEl.textContent = value;
+        dropdownEl.querySelectorAll('.custom-select-option').forEach(function(o) {
+            o.classList.toggle('selected', o === option);
+        });
+        selectEl.classList.remove('open');
+        onChange(value);
+    });
+}
+
+document.addEventListener('click', function() {
+    document.querySelectorAll('.custom-select.open').forEach(function(el) {
+        el.classList.remove('open');
+    });
+});
+
+setupCustomSelect('font-family-select', 'font-family-trigger', 'font-family-dropdown', function(value) {
+    currentFontFamily = value;
+    if (selectedElement) {
+        selectedElement.fontFamily = value;
+        renderCanvas();
+        saveContent();
+    }
+});
+
+setupCustomSelect('font-size-select', 'font-size-trigger', 'font-size-dropdown', function(value) {
+    currentFontSize = parseInt(value);
+    if (selectedElement) {
+        selectedElement.fontSize = parseInt(value);
+        renderCanvas();
+        saveContent();
+    }
+});
+
+function ensureSlideExists() {
+    if (!slides || slides.length === 0) {
+        slides = [{ id: Date.now().toString(), bgColor: "#ffffff", elements: [] }];
+        currentSlideIndex = 0;
+    }
+    if (!slides[currentSlideIndex]) currentSlideIndex = 0;
+    if (!slides[currentSlideIndex].elements) slides[currentSlideIndex].elements = [];
+}
+
+
+
+function addSlide() {
+    const slide = { id: Date.now().toString(), bgColor: "#ffffff", elements: [] };
+    slides.push(slide);
+    currentSlideIndex = slides.length - 1;
+    renderSlidePanel();
+    renderCanvas();
+    saveContent();
+}
+
+function renderSlidePanel() {
+    ensureSlideExists();
+    const panel = document.getElementById("slide-panel");
+    panel.innerHTML = "";
+
+    const addBtn = document.createElement("button");
+    addBtn.className = "add-slide-btn";
+    addBtn.textContent = "+ Add Slide";
+    addBtn.onclick = addSlide;
+    panel.appendChild(addBtn);
+
+    slides.forEach(function(slide, index) {
+        const thumb = document.createElement("div");
+        thumb.className = "slide-thumbnail" + (index === currentSlideIndex ? " active" : "");
+        thumb.style.backgroundColor = slide.bgColor;
+
+        const num = document.createElement("span");
+        num.className = "slide-number";
+        num.textContent = index + 1;
+
+        const del = document.createElement("button");
+        del.className = "delete-slide-btn";
+        del.textContent = "×";
+        del.onclick = function(e) {
+            e.stopPropagation();
+            if (slides.length === 1) return;
+            slides.splice(index, 1);
+            if (currentSlideIndex >= slides.length) currentSlideIndex = slides.length - 1;
+            renderSlidePanel();
+            renderCanvas();
+            saveContent();
+        };
+
+        thumb.onclick = function() {
+            currentSlideIndex = index;
+            renderSlidePanel();
+            renderCanvas();
+        };
+
+        thumb.appendChild(num);
+        thumb.appendChild(del);
+        panel.appendChild(thumb);
+    });
+}
+
+
+
+function renderCanvas() {
+    ensureSlideExists();
+    const canvas = document.getElementById("slide-canvas");
+    const slide = slides[currentSlideIndex];
+    canvas.style.backgroundColor = slide.bgColor;
+    canvas.innerHTML = "";
+    slide.elements.forEach(function(el) {
+        if (el.type === "image") addImageToCanvas(el);
+        else addElementToCanvas(el);
+    });
+}
+
+
+
+function addElementToCanvas(el) {
+    const canvas = document.getElementById("slide-canvas");
+    const wrapper = document.createElement("div");
+    wrapper.style.position = "absolute";
+    wrapper.style.left = el.x + "px";
+    wrapper.style.top = el.y + "px";
+    wrapper.style.width = el.width + "px";
+
+    const div = document.createElement("div");
+    div.contentEditable = true;
+    div.textContent = el.text || "Click to edit";
+    div.style.color = el.color;
+    div.style.fontFamily = el.fontFamily;
+    div.style.fontSize = el.fontSize + "px";
+    div.style.fontWeight = el.bold ? "bold" : "normal";
+    div.style.fontStyle = el.italic ? "italic" : "normal";
+    div.style.textDecoration = el.underline ? "underline" : "none";
+
+    div.onfocus = function() { selectedElement = el; };
+    div.oninput = function() { el.text = div.textContent; saveContent(); };
+
+    wrapper.appendChild(div);
+    makeDraggable(wrapper, el);
+    canvas.appendChild(wrapper);
+}
+
+
+
+function addImageToCanvas(el) {
+    const canvas = document.getElementById("slide-canvas");
+    const wrapper = document.createElement("div");
+    wrapper.style.position = "absolute";
+    wrapper.style.left = el.x + "px";
+    wrapper.style.top = el.y + "px";
+    wrapper.style.width = el.width + "px";
+    wrapper.style.height = el.height + "px";
+
+    const img = document.createElement("img");
+    img.src = el.src;
+    img.style.width = "100%";
+    img.style.height = "100%";
+
+    wrapper.appendChild(img);
+    makeDraggable(wrapper, el);
+    canvas.appendChild(wrapper);
+}
+
+
+
+function makeDraggable(wrapper, el) {
+    let startX, startY, startLeft, startTop;
+    wrapper.onmousedown = function(e) {
+        startX = e.clientX;
+        startY = e.clientY;
+        startLeft = el.x;
+        startTop = el.y;
+
+        function move(e) {
+            el.x = startLeft + (e.clientX - startX);
+            el.y = startTop + (e.clientY - startY);
+            wrapper.style.left = el.x + "px";
+            wrapper.style.top = el.y + "px";
+        }
+        function up() {
+            document.removeEventListener("mousemove", move);
+            document.removeEventListener("mouseup", up);
+            saveContent();
+        }
+        document.addEventListener("mousemove", move);
+        document.addEventListener("mouseup", up);
+    };
+}
+
+
+document.getElementById("btn-add-text").onclick = function() {
+    ensureSlideExists();
+    const el = {
+        id: Date.now().toString(),
+        type: "text",
+        x: 100, y: 100, width: 300,
+        text: "Click to edit",
+        color: document.getElementById("text-color").value,
+        fontFamily: currentFontFamily,
+        fontSize: currentFontSize,
+        bold: false, italic: false, underline: false
+    };
+    slides[currentSlideIndex].elements.push(el);
+    renderCanvas();
+    saveContent();
+};
+
+document.getElementById("btn-add-image").onclick = function() {
+    document.getElementById("image-upload").click();
+};
+
+document.getElementById("image-upload").onchange = function(e) {
+    ensureSlideExists();
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        const el = {
+            id: Date.now().toString(),
+            type: "image",
+            x: 100, y: 100, width: 300, height: 200,
+            src: ev.target.result
+        };
+        slides[currentSlideIndex].elements.push(el);
+        renderCanvas();
+        saveContent();
+    };
+    reader.readAsDataURL(file);
+};
+
+document.getElementById("btn-bold").onclick = function() {
+    if (!selectedElement) return;
+    selectedElement.bold = !selectedElement.bold;
+    renderCanvas();
+    saveContent();
+};
+
+document.getElementById("btn-italic").onclick = function() {
+    if (!selectedElement) return;
+    selectedElement.italic = !selectedElement.italic;
+    renderCanvas();
+    saveContent();
+};
+
+document.getElementById("btn-underline").onclick = function() {
+    if (!selectedElement) return;
+    selectedElement.underline = !selectedElement.underline;
+    renderCanvas();
+    saveContent();
+};
+
+document.getElementById("text-color").oninput = function() {
+    if (!selectedElement) return;
+    selectedElement.color = this.value;
+    renderCanvas();
+    saveContent();
+};
+
+document.getElementById("bg-color").oninput = function() {
+    ensureSlideExists();
+    slides[currentSlideIndex].bgColor = this.value;
+    renderSlidePanel();
+    renderCanvas();
+    saveContent();
+};
+
+
+function saveContent() {
+    console.log("SAVESLIDECONTENT:" + presId + ":" + JSON.stringify(slides));
+}
+
+
+addSlide();
+
+</script>
+</body>
+</html>
