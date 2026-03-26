@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scribble Notepad</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background-color: #0d0d0f;
+            color: #e8e8f0;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #top-bar {
+            background-color: #1a1a1f;
+            border-bottom: 1px solid #2a2a35;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        #title {
+            color: #6c63ff;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        #stats {
+            color: #6b6b80;
+            font-size: 12px;
+        }
+        #notepad {
+            flex: 1;
+            background-color: #0d0d0f;
+            color: #e8e8f0;
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 15px;
+            line-height: 1.8;
+            padding: 40px;
+            border: none;
+            outline: none;
+            resize: none;
+        }
+        #notepad::placeholder {
+            color: #3a3a45;
+        }
+    </style>
+</head>
+<body>
+    <div id="top-bar">
+        <span id="title">📓 Scribble Notepad</span>
+        <span id="stats">0 words · 0 characters</span>
+    </div>
+    <textarea id="notepad" placeholder="Start typing..."></textarea>
+
+    <script>
+        const notepad = document.getElementById('notepad');
+        const stats = document.getElementById('stats');
+
+        function updateStats() {
+            const text = notepad.value;
+            const chars = text.length;
+            const words = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+            stats.textContent = words + ' words · ' + chars + ' characters';
+        }
+
+        function saveContent() {
+            console.log('SAVENOTEPAD:' + notepad.value);
+        }
+
+        function loadContent(content) {
+            if (!content) return;
+            notepad.value = content;
+            updateStats();
+        }
+
+        notepad.addEventListener('input', function() {
+            updateStats();
+            saveContent();
+        });
+
+        updateStats();
+    </script>
+</body>
+</html>

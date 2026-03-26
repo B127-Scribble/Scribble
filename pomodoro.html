@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scribble Pomodoro</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: #0d0d0f;
+            color: #e8e8f0;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        #container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 32px;
+        }
+        #title {
+            font-size: 28px;
+            font-weight: 800;
+            color: #6c63ff;
+            letter-spacing: -1px;
+        }
+        #mode-tabs {
+            display: flex;
+            gap: 8px;
+            background-color: #1a1a1f;
+            border-radius: 12px;
+            padding: 6px;
+            border: 1px solid #2a2a35;
+        }
+        .mode-btn {
+            background-color: transparent;
+            color: #6b6b80;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .mode-btn.active {
+            background-color: #6c63ff;
+            color: white;
+        }
+        .mode-btn:hover:not(.active) {
+            background-color: #2a2a35;
+            color: #e8e8f0;
+        }
+        #timer-circle {
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            background: conic-gradient(#6c63ff 0deg, #1e1e28 0deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 40px rgba(108, 99, 255, 0.3);
+            position: relative;
+        }
+        #timer-inner {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background-color: #0d0d0f;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+        #timer-display {
+            font-size: 52px;
+            font-weight: 200;
+            color: #e8e8f0;
+            letter-spacing: 2px;
+        }
+        #mode-label {
+            font-size: 12px;
+            color: #6b6b80;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        #controls {
+            display: flex;
+            gap: 12px;
+        }
+        .ctrl-btn {
+            background-color: #1e1e28;
+            color: #e8e8f0;
+            border: 1px solid #2a2a35;
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .ctrl-btn:hover {
+            background-color: #2a2a35;
+        }
+        #btn-start {
+            background-color: #6c63ff;
+            border-color: #6c63ff;
+        }
+        #btn-start:hover {
+            background-color: #5a52d5;
+        }
+        #session-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        #session-count {
+            font-size: 14px;
+            color: #6b6b80;
+        }
+        #session-dots {
+            display: flex;
+            gap: 8px;
+        }
+        .session-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #2a2a35;
+            border: 1px solid #3a3a45;
+        }
+        .session-dot.completed {
+            background-color: #6c63ff;
+            border-color: #6c63ff;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="title">🍅 Pomodoro</div>
+
+        <div id="mode-tabs">
+            <button class="mode-btn active" onclick="setMode('work')">Work</button>
+            <button class="mode-btn" onclick="setMode('short')">Short Break</button>
+            <button class="mode-btn" onclick="setMode('long')">Long Break</button>
+        </div>
+
+        <div id="timer-circle">
+            <div id="timer-inner">
+                <div id="timer-display">25:00</div>
+                <div id="mode-label">Focus Time</div>
+            </div>
+        </div>
+
+        <div id="controls">
+            <button class="ctrl-btn" onclick="resetTimer()">↺ Reset</button>
+            <button class="ctrl-btn" id="btn-start" onclick="toggleTimer()">▶ Start</button>
+            <button class="ctrl-btn" onclick="skipSession()">⏭ Skip</button>
+        </div>
+
+        <div id="session-info">
+            <div id="session-count">Session 1 of 4</div>
+            <div id="session-dots">
+                <div class="session-dot" id="dot-0"></div>
+                <div class="session-dot" id="dot-1"></div>
+                <div class="session-dot" id="dot-2"></div>
+                <div class="session-dot" id="dot-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const MODES = {
+            work:  { label: 'Focus Time',   minutes: 25, color: '#6c63ff' },
+            short: { label: 'Short Break',  minutes: 5,  color: '#86efac' },
+            long:  { label: 'Long Break',   minutes: 15, color: '#60a5fa' }
+        };
+
+        let mode = 'work';
+        let timeLeft = 25 * 60;
+        let totalTime = 25 * 60;
+        let running = false;
+        let interval = null;
+        let sessionsCompleted = 0;
+
+        function setMode(m) {
+            mode = m;
+            clearInterval(interval);
+            running = false;
+            document.getElementById('btn-start').textContent = '▶ Start';
+            timeLeft = MODES[m].minutes * 60;
+            totalTime = MODES[m].minutes * 60;
+            document.getElementById('mode-label').textContent = MODES[m].label;
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            updateDisplay();
+            updateCircle();
+        }
+
+        function toggleTimer() {
+            if (running) {
+                clearInterval(interval);
+                running = false;
+                document.getElementById('btn-start').textContent = '▶ Start';
+            } else {
+                running = true;
+                document.getElementById('btn-start').textContent = '⏸ Pause';
+                interval = setInterval(tick, 1000);
+            }
+        }
+
+        function tick() {
+            if (timeLeft <= 0) {
+                clearInterval(interval);
+                running = false;
+                document.getElementById('btn-start').textContent = '▶ Start';
+                playBeep();
+                if (mode === 'work') {
+                    sessionsCompleted++;
+                    if (sessionsCompleted >= 4) sessionsCompleted = 0;
+                    updateDots();
+                }
+                return;
+            }
+            timeLeft--;
+            updateDisplay();
+            updateCircle();
+        }
+
+        function resetTimer() {
+            clearInterval(interval);
+            running = false;
+            document.getElementById('btn-start').textContent = '▶ Start';
+            timeLeft = MODES[mode].minutes * 60;
+            totalTime = MODES[mode].minutes * 60;
+            updateDisplay();
+            updateCircle();
+        }
+
+        function skipSession() {
+            clearInterval(interval);
+            running = false;
+            document.getElementById('btn-start').textContent = '▶ Start';
+            timeLeft = 0;
+            updateDisplay();
+            updateCircle();
+            if (mode === 'work') {
+                sessionsCompleted++;
+                if (sessionsCompleted >= 4) sessionsCompleted = 0;
+                updateDots();
+            }
+        }
+
+        function updateDisplay() {
+            const mins = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+            const secs = (timeLeft % 60).toString().padStart(2, '0');
+            document.getElementById('timer-display').textContent = mins + ':' + secs;
+            document.getElementById('session-count').textContent =
+                'Session ' + (sessionsCompleted + 1) + ' of 4';
+        }
+
+        function updateCircle() {
+            const progress = 1 - (timeLeft / totalTime);
+            const degrees = progress * 360;
+            const color = MODES[mode].color;
+            document.getElementById('timer-circle').style.background =
+                `conic-gradient(${color} ${degrees}deg, #1e1e28 ${degrees}deg)`;
+        }
+
+        function updateDots() {
+            for (let i = 0; i < 4; i++) {
+                const dot = document.getElementById('dot-' + i);
+                if (i < sessionsCompleted) {
+                    dot.classList.add('completed');
+                } else {
+                    dot.classList.remove('completed');
+                }
+            }
+        }
+
+        function playBeep() {
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = 880;
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 1);
+        }
+
+        updateDisplay();
+        updateCircle();
+    </script>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scribble Map</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: #0d0d0f;
+            color: #e8e8f0;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #top-bar {
+            background-color: #1a1a1f;
+            border-bottom: 1px solid #2a2a35;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #title {
+            color: #6c63ff;
+            font-size: 16px;
+            font-weight: 700;
+            margin-right: 8px;
+        }
+        #search-input {
+            flex: 1;
+            background-color: #1e1e28;
+            color: #e8e8f0;
+            border: 1.5px solid #2a2a35;
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-size: 14px;
+            outline: none;
+        }
+        #search-input:focus {
+            border-color: #6c63ff;
+        }
+        #search-btn {
+            background-color: #6c63ff;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        #search-btn:hover { background-color: #5a52d5; }
+        #map {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div id="top-bar">
+        <span id="title">🗺 Scribble Map</span>
+        <input type="text" id="search-input" placeholder="Search for a place...">
+        <button id="search-btn">Search</button>
+    </div>
+    <div id="map"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script>
+        const map = L.map('map').setView([20, 0], 2);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        let markers = [];
+
+        function loadMarkers() {
+            const saved = localStorage.getItem('map_markers');
+            if (!saved) return;
+            try {
+                const data = JSON.parse(saved);
+                data.forEach(function(m) {
+                    addMarker(m.lat, m.lng, m.label, false);
+                });
+            } catch(e) {}
+        }
+
+        function saveMarkers() {
+            const data = markers.map(function(m) {
+                return { lat: m.lat, lng: m.lng, label: m.label };
+            });
+            console.log('SAVEMAP:' + JSON.stringify(data));
+        }
+
+        function addMarker(lat, lng, label, save) {
+            const marker = L.marker([lat, lng]).addTo(map);
+            marker.bindPopup(
+                '<b>' + label + '</b><br>' +
+                '<button onclick="removeMarker(' + markers.length + ')" ' +
+                'style="margin-top:6px;background:#f87171;color:white;border:none;' +
+                'border-radius:4px;padding:3px 8px;cursor:pointer;">Remove</button>'
+            );
+            markers.push({ marker, lat, lng, label });
+            if (save) saveMarkers();
+        }
+
+        function removeMarker(index) {
+            if (markers[index]) {
+                map.removeLayer(markers[index].marker);
+                markers.splice(index, 1);
+                saveMarkers();
+            }
+        }
+
+        map.on('click', function(e) {
+            const label = prompt('Name this pin:');
+            if (!label) return;
+            addMarker(e.latlng.lat, e.latlng.lng, label, true);
+        });
+
+        document.getElementById('search-btn').addEventListener('click', function() {
+            searchPlace();
+        });
+
+        document.getElementById('search-input').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') searchPlace();
+        });
+
+        function searchPlace() {
+            const query = document.getElementById('search-input').value.trim();
+            if (!query) return;
+
+            fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query))
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data.length === 0) {
+                        alert('Place not found!');
+                        return;
+                    }
+                    const place = data[0];
+                    const lat = parseFloat(place.lat);
+                    const lng = parseFloat(place.lon);
+                    map.setView([lat, lng], 13);
+                    addMarker(lat, lng, place.display_name.split(',')[0], true);
+                })
+                .catch(function() {
+                    alert('Search failed. Check your connection.');
+                });
+        }
+
+        function loadContent(data) {
+            if (!data) return;
+            try {
+                const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+                parsed.forEach(function(m) {
+                    addMarker(m.lat, m.lng, m.label, false);
+                });
+            } catch(e) {}
+        }
+
+        loadMarkers();
+    </script>
+</body>
+</html>

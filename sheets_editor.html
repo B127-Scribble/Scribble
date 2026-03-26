@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scribble Sheets</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background-color: #0d0d0f;
+            color: #e8e8f0;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            color-scheme: dark;
+        }
+        #top-bar {
+            background-color: #1a1a1f;
+            border-bottom: 1px solid #2a2a35;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        #sheet-name {
+            color: #e8e8f0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        #toolbar {
+            background-color: #111115;
+            border-bottom: 1px solid #2a2a35;
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #toolbar button {
+            background-color: transparent;
+            color: #e8e8f0;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        #toolbar button:hover {
+            background-color: #2a2a35;
+        }
+        #toolbar button.active {
+            background-color: #6c63ff;
+            color: white;
+        }
+
+        /* Custom dropdown */
+        .custom-select {
+            position: relative;
+            display: inline-block;
+        }
+        .custom-select-trigger {
+            background-color: #1e1e28;
+            color: #e8e8f0;
+            border: 1px solid #2a2a35;
+            border-radius: 4px;
+            padding: 3px 24px 3px 6px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            min-width: 60px;
+        }
+        .custom-select-trigger::after {
+            content: '▾';
+            position: absolute;
+            right: 6px;
+            font-size: 10px;
+            color: #6b6b80;
+        }
+        .custom-select-trigger:hover {
+            background-color: #2a2a35;
+        }
+        .custom-select.open .custom-select-trigger {
+            border-color: #6c63ff;
+        }
+        .custom-select-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 2px);
+            left: 0;
+            background-color: #1e1e28;
+            border: 1px solid #2a2a35;
+            border-radius: 4px;
+            z-index: 1000;
+            min-width: 100%;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+        .custom-select.open .custom-select-dropdown {
+            display: block;
+        }
+        .custom-select-option {
+            padding: 5px 10px;
+            font-size: 13px;
+            color: #e8e8f0;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .custom-select-option:hover {
+            background-color: #2a2a35;
+        }
+        .custom-select-option.selected {
+            background-color: #6c63ff33;
+            color: #a09cf7;
+        }
+
+        .divider {
+            width: 1px;
+            height: 20px;
+            background-color: #2a2a35;
+            margin: 0 4px;
+        }
+        #btn-bold { font-weight: bold; }
+        #btn-italic { font-style: italic; }
+        #btn-underline { text-decoration: underline; }
+        #grid-container {
+            flex: 1;
+            overflow: auto;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th {
+            background-color: #111115;
+            color: #6b6b80;
+            border: 1px solid #2a2a35;
+            min-width: 100px;
+            height: 25px;
+            font-size: 11px;
+            font-weight: normal;
+            text-align: center;
+            position: sticky;
+            top: 0;
+        }
+        td {
+            border: 1px solid #2a2a35;
+            min-width: 100px;
+            height: 25px;
+            padding: 2px 4px;
+            font-size: 13px;
+            color: #e8e8f0;
+            background-color: #0d0d0f;
+        }
+        td.row-header {
+            background-color: #111115;
+            color: #6b6b80;
+            text-align: center;
+            min-width: 40px;
+            font-size: 11px;
+            cursor: default;
+            position: sticky;
+            left: 0;
+        }
+        td:focus {
+            outline: 2px solid #6c63ff;
+            background-color: #1e1e28;
+        }
+        input[type="color"] {
+            width: 28px;
+            height: 24px;
+            border: 1px solid #2a2a35;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 0;
+            background: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="top-bar">
+        <span id="sheet-name">My Sheet</span>
+    </div>
+
+    <div id="toolbar">
+        <!-- Custom font family dropdown -->
+        <div class="custom-select" id="font-family-select">
+            <div class="custom-select-trigger" id="font-family-trigger">Segoe UI</div>
+            <div class="custom-select-dropdown" id="font-family-dropdown">
+                <div class="custom-select-option selected" data-value="Segoe UI">Segoe UI</div>
+                <div class="custom-select-option" data-value="Arial">Arial</div>
+                <div class="custom-select-option" data-value="Times New Roman">Times New Roman</div>
+                <div class="custom-select-option" data-value="Courier New">Courier New</div>
+                <div class="custom-select-option" data-value="Georgia">Georgia</div>
+                <div class="custom-select-option" data-value="Verdana">Verdana</div>
+            </div>
+        </div>
+
+        <!-- Custom font size dropdown -->
+        <div class="custom-select" id="font-size-select">
+            <div class="custom-select-trigger" id="font-size-trigger">12</div>
+            <div class="custom-select-dropdown" id="font-size-dropdown">
+                <div class="custom-select-option" data-value="10">10</div>
+                <div class="custom-select-option" data-value="11">11</div>
+                <div class="custom-select-option selected" data-value="12">12</div>
+                <div class="custom-select-option" data-value="14">14</div>
+                <div class="custom-select-option" data-value="16">16</div>
+                <div class="custom-select-option" data-value="18">18</div>
+                <div class="custom-select-option" data-value="24">24</div>
+                <div class="custom-select-option" data-value="36">36</div>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <button id="btn-bold">B</button>
+        <button id="btn-italic">I</button>
+        <button id="btn-underline">U</button>
+
+        <div class="divider"></div>
+
+        <button id="btn-align-left">≡</button>
+        <button id="btn-align-center">≡</button>
+        <button id="btn-align-right">≡</button>
+
+        <div class="divider"></div>
+
+        <label style="color: #6b6b80; font-size: 12px;">Text</label>
+        <input type="color" id="text-color" value="#e8e8f0">
+
+        <label style="color: #6b6b80; font-size: 12px;">Fill</label>
+        <input type="color" id="bg-color" value="#0d0d0f">
+    </div>
+
+    <div id="grid-container">
+        <table id="grid">
+            <thead>
+                <tr id="header-row"></tr>
+            </thead>
+            <tbody id="grid-body"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const sheetName = urlParams.get('name') || 'My Sheet';
+        const sheetId = urlParams.get('id');
+
+        document.getElementById('sheet-name').textContent = sheetName;
+
+        const ROWS = 50;
+        const COLS = 26;
+
+        const headerRow = document.getElementById('header-row');
+        const gridBody  = document.getElementById('grid-body');
+
+        headerRow.innerHTML = '<th></th>';
+
+        for (let c = 0; c < COLS; c++) {
+            const th = document.createElement('th');
+            th.textContent = String.fromCharCode(65 + c);
+            headerRow.appendChild(th);
+        }
+
+        for (let r = 0; r < ROWS; r++) {
+            const tr = document.createElement('tr');
+
+            const rowHeader = document.createElement('td');
+            rowHeader.className = 'row-header';
+            rowHeader.textContent = r + 1;
+            tr.appendChild(rowHeader);
+
+            for (let c = 0; c < COLS; c++) {
+                const td = document.createElement('td');
+                td.contentEditable = true;
+                tr.appendChild(td);
+            }
+
+            gridBody.appendChild(tr);
+        }
+
+        let selectedCell = null;
+
+        document.getElementById('grid').addEventListener('click', function(e) {
+            if (e.target.contentEditable === 'true') {
+                selectedCell = e.target;
+            }
+        });
+
+        document.getElementById('grid').addEventListener('focusout', function(e) {
+            if (e.target.contentEditable === 'true') {
+                const text = e.target.textContent.trim();
+                if (text.startsWith('=')) {
+                    const result = calculateFormula(text);
+                    e.target.textContent = result;
+                }
+                saveGridData();
+            }
+        });
+
+        // Custom select logic
+        function setupCustomSelect(selectId, triggerId, dropdownId, onChange) {
+            const selectEl   = document.getElementById(selectId);
+            const triggerEl  = document.getElementById(triggerId);
+            const dropdownEl = document.getElementById(dropdownId);
+
+            triggerEl.addEventListener('click', function(e) {
+                e.stopPropagation();
+                // Close all other dropdowns
+                document.querySelectorAll('.custom-select.open').forEach(function(el) {
+                    if (el !== selectEl) el.classList.remove('open');
+                });
+                selectEl.classList.toggle('open');
+            });
+
+            dropdownEl.addEventListener('click', function(e) {
+                const option = e.target.closest('.custom-select-option');
+                if (!option) return;
+                const value = option.dataset.value;
+                triggerEl.textContent = value;
+                dropdownEl.querySelectorAll('.custom-select-option').forEach(function(o) {
+                    o.classList.toggle('selected', o === option);
+                });
+                selectEl.classList.remove('open');
+                onChange(value);
+            });
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function() {
+            document.querySelectorAll('.custom-select.open').forEach(function(el) {
+                el.classList.remove('open');
+            });
+        });
+
+        setupCustomSelect('font-family-select', 'font-family-trigger', 'font-family-dropdown', function(value) {
+            if (!selectedCell) return;
+            selectedCell.style.fontFamily = value;
+        });
+
+        setupCustomSelect('font-size-select', 'font-size-trigger', 'font-size-dropdown', function(value) {
+            if (!selectedCell) return;
+            selectedCell.style.fontSize = value + 'px';
+        });
+
+        document.getElementById('btn-bold').addEventListener('click', function() {
+            if (!selectedCell) return;
+            selectedCell.style.fontWeight =
+                selectedCell.style.fontWeight === 'bold' ? 'normal' : 'bold';
+            this.classList.toggle('active');
+        });
+
+        document.getElementById('btn-italic').addEventListener('click', function() {
+            if (!selectedCell) return;
+            selectedCell.style.fontStyle =
+                selectedCell.style.fontStyle === 'italic' ? 'normal' : 'italic';
+            this.classList.toggle('active');
+        });
+
+        document.getElementById('btn-underline').addEventListener('click', function() {
+            if (!selectedCell) return;
+            selectedCell.style.textDecoration =
+                selectedCell.style.textDecoration === 'underline' ? 'none' : 'underline';
+            this.classList.toggle('active');
+        });
+
+        document.getElementById('btn-align-left').addEventListener('click', function() {
+            if (!selectedCell) return;
+            selectedCell.style.textAlign = 'left';
+        });
+
+        document.getElementById('btn-align-center').addEventListener('click', function() {
+            if (!selectedCell) return;
+            selectedCell.style.textAlign = 'center';
+        });
+
+        document.getElementById('btn-align-right').addEventListener('click', function() {
+            if (!selectedCell) return;
+            selectedCell.style.textAlign = 'right';
+        });
+
+        document.getElementById('text-color').addEventListener('input', function() {
+            if (!selectedCell) return;
+            selectedCell.style.color = this.value;
+        });
+
+        document.getElementById('bg-color').addEventListener('input', function() {
+            if (!selectedCell) return;
+            selectedCell.style.backgroundColor = this.value;
+        });
+
+        function cellToIndex(cell) {
+            cell = cell.trim();
+            const col = cell.charCodeAt(0) - 65;
+            const row = parseInt(cell.substring(1)) - 1;
+            return { row: row, col: col };
+        }
+
+        function getRange(range) {
+            range = range.trim();
+            const parts = range.split(':');
+            const start = cellToIndex(parts[0].trim());
+            const end = cellToIndex(parts[1].trim());
+
+            const values = [];
+            const rows = document.querySelectorAll('#grid-body tr');
+
+            for (let r = start.row; r <= end.row; r++) {
+                for (let c = start.col; c <= end.col; c++) {
+                    const row = rows[r];
+                    if (!row) continue;
+                    const cells = row.querySelectorAll('td:not(.row-header)');
+                    const cell = cells[c];
+                    if (!cell) continue;
+                    const val = parseFloat(cell.textContent.trim());
+                    if (!isNaN(val)) values.push(val);
+                }
+            }
+
+            return values;
+        }
+
+        function sumRange(range) {
+            const values = getRange(range);
+            return values.reduce((a, b) => a + b, 0);
+        }
+
+        function calculateFormula(formula) {
+            try {
+                formula = formula.toUpperCase().trim();
+
+                if (formula.startsWith('=SUM(')) {
+                    const range = formula.slice(5, -1);
+                    return sumRange(range);
+                }
+                else if (formula.startsWith('=AVERAGE(')) {
+                    const range = formula.slice(9, -1);
+                    const values = getRange(range);
+                    if (values.length === 0) return 0;
+                    return values.reduce((a, b) => a + b, 0) / values.length;
+                }
+                else if (formula.startsWith('=COUNT(')) {
+                    const range = formula.slice(7, -1);
+                    return getRange(range).length;
+                }
+                else if (formula.startsWith('=MAX(')) {
+                    const range = formula.slice(5, -1);
+                    const values = getRange(range);
+                    if (values.length === 0) return 0;
+                    return Math.max(...values);
+                }
+                else if (formula.startsWith('=MIN(')) {
+                    const range = formula.slice(5, -1);
+                    const values = getRange(range);
+                    if (values.length === 0) return 0;
+                    return Math.min(...values);
+                }
+                else {
+                    return 'ERROR';
+                }
+            } catch(e) {
+                return 'ERROR';
+            }
+        }
+
+        function getGridData() {
+            const data = {};
+            const rows = document.querySelectorAll('#grid-body tr');
+
+            rows.forEach(function(row, rowIndex) {
+                const cells = row.querySelectorAll('td:not(.row-header)');
+                cells.forEach(function(cell, colIndex) {
+                    if (cell.textContent.trim() !== '') {
+                        const key = rowIndex + ',' + colIndex;
+                        data[key] = {
+                            text: cell.textContent,
+                            bold: cell.style.fontWeight,
+                            italic: cell.style.fontStyle,
+                            underline: cell.style.textDecoration,
+                            fontFamily: cell.style.fontFamily,
+                            fontSize: cell.style.fontSize,
+                            align: cell.style.textAlign,
+                            color: cell.style.color,
+                            bgColor: cell.style.backgroundColor
+                        };
+                    }
+                });
+            });
+
+            return data;
+        }
+
+        function loadGridData(data) {
+            if (!data) return;
+            if (typeof data === 'string') {
+                data = JSON.parse(data);
+            }
+
+            const rows = document.querySelectorAll('#grid-body tr');
+
+            Object.keys(data).forEach(function(key) {
+                const parts = key.split(',');
+                const rowIndex = parseInt(parts[0]);
+                const colIndex = parseInt(parts[1]);
+                const cellData = data[key];
+
+                const row = rows[rowIndex];
+                if (!row) return;
+
+                const cells = row.querySelectorAll('td:not(.row-header)');
+                const cell = cells[colIndex];
+                if (!cell) return;
+
+                cell.textContent = cellData.text;
+                cell.style.fontWeight = cellData.bold;
+                cell.style.fontStyle = cellData.italic;
+                cell.style.textDecoration = cellData.underline;
+                cell.style.fontFamily = cellData.fontFamily;
+                cell.style.fontSize = cellData.fontSize;
+                cell.style.textAlign = cellData.align;
+                cell.style.color = cellData.color;
+                cell.style.backgroundColor = cellData.bgColor;
+            });
+        }
+
+        function saveGridData() {
+            const data = getGridData();
+            console.log('SAVESHEET:' + sheetId + ':' + JSON.stringify(data));
+        }
+
+        document.getElementById('grid').addEventListener('input', function() {
+            saveGridData();
+        });
+    </script>
+</body>
+</html>

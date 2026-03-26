@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scribble Code</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background-color: #0d0d0f;
+            color: #e8e8f0;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            color-scheme: dark;
+        }
+        #top-bar {
+            background-color: #1a1a1f;
+            border-bottom: 1px solid #2a2a35;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        #file-name {
+            color: #e8e8f0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        #run-btn {
+            background-color: #6c63ff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 16px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        #run-btn:hover {
+            background-color: #5a52d5;
+        }
+        #toolbar {
+            background-color: #111115;
+            border-bottom: 1px solid #2a2a35;
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #toolbar label {
+            color: #6b6b80;
+            font-size: 13px;
+        }
+
+        /* Custom dropdown */
+        .custom-select {
+            position: relative;
+            display: inline-block;
+        }
+        .custom-select-trigger {
+            background-color: #1e1e28;
+            color: #e8e8f0;
+            border: 1px solid #2a2a35;
+            border-radius: 4px;
+            padding: 3px 24px 3px 6px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+            min-width: 60px;
+            position: relative;
+        }
+        .custom-select-trigger::after {
+            content: '▾';
+            position: absolute;
+            right: 6px;
+            font-size: 10px;
+            color: #6b6b80;
+        }
+        .custom-select-trigger:hover {
+            background-color: #2a2a35;
+        }
+        .custom-select.open .custom-select-trigger {
+            border-color: #6c63ff;
+        }
+        .custom-select-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 2px);
+            left: 0;
+            background-color: #1e1e28;
+            border: 1px solid #2a2a35;
+            border-radius: 4px;
+            z-index: 1000;
+            min-width: 100%;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+        .custom-select.open .custom-select-dropdown {
+            display: block;
+        }
+        .custom-select-option {
+            padding: 5px 10px;
+            font-size: 13px;
+            color: #e8e8f0;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .custom-select-option:hover {
+            background-color: #2a2a35;
+        }
+        .custom-select-option.selected {
+            background-color: #6c63ff33;
+            color: #a09cf7;
+        }
+
+        #main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #editor-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+        }
+        #line-numbers {
+            background-color: #111115;
+            color: #6b6b80;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            padding: 16px 8px;
+            text-align: right;
+            min-width: 40px;
+            border-right: 1px solid #2a2a35;
+            user-select: none;
+            overflow: hidden;
+        }
+        #editor {
+            flex: 1;
+            background-color: #0d0d0f;
+            color: #e8e8f0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            padding: 16px;
+            border: none;
+            outline: none;
+            resize: none;
+            tab-size: 4;
+        }
+        #output-container {
+            height: 200px;
+            background-color: #0a0a0c;
+            border-top: 1px solid #2a2a35;
+            display: flex;
+            flex-direction: column;
+        }
+        #output-header {
+            background-color: #111115;
+            padding: 4px 12px;
+            font-size: 12px;
+            color: #6b6b80;
+            border-bottom: 1px solid #2a2a35;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #clear-btn {
+            background: transparent;
+            border: none;
+            color: #6b6b80;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        #clear-btn:hover {
+            color: #e8e8f0;
+        }
+        #output {
+            flex: 1;
+            padding: 8px 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #e8e8f0;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .output-error { color: #f87171; }
+        .output-success { color: #86efac; }
+    </style>
+</head>
+<body>
+    <div id="top-bar">
+        <span id="file-name">My File</span>
+
+        <!-- Language dropdown -->
+        <div class="custom-select" id="language-select">
+            <div class="custom-select-trigger" id="language-trigger">Python</div>
+            <div class="custom-select-dropdown" id="language-dropdown">
+                <div class="custom-select-option selected" data-value="python">Python</div>
+                <div class="custom-select-option" data-value="javascript">JavaScript</div>
+            </div>
+        </div>
+
+        <button id="run-btn">▶ Run</button>
+    </div>
+
+    <div id="toolbar">
+        <label>Font size:</label>
+
+        <!-- Font size dropdown -->
+        <div class="custom-select" id="font-size-select">
+            <div class="custom-select-trigger" id="font-size-trigger">14</div>
+            <div class="custom-select-dropdown" id="font-size-dropdown">
+                <div class="custom-select-option" data-value="12">12</div>
+                <div class="custom-select-option selected" data-value="14">14</div>
+                <div class="custom-select-option" data-value="16">16</div>
+                <div class="custom-select-option" data-value="18">18</div>
+                <div class="custom-select-option" data-value="20">20</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-area">
+        <div id="editor-container">
+            <div id="line-numbers">1</div>
+            <textarea id="editor" spellcheck="false" placeholder="Start coding..."></textarea>
+        </div>
+        <div id="output-container">
+            <div id="output-header">
+                <span>Output</span>
+                <button id="clear-btn">Clear</button>
+            </div>
+            <div id="output"></div>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const fileName = urlParams.get('name') || 'My File';
+        const fileId = urlParams.get('id');
+
+        document.getElementById('file-name').textContent = fileName;
+
+        const editor = document.getElementById('editor');
+        const lineNumbers = document.getElementById('line-numbers');
+        const output = document.getElementById('output');
+
+        let currentLanguage = 'python';
+
+        function updateLineNumbers() {
+            const lines = editor.value.split('\n').length;
+            lineNumbers.innerHTML = Array.from({length: lines}, (_, i) => i + 1).join('<br>');
+        }
+
+        function syncScroll() {
+            lineNumbers.scrollTop = editor.scrollTop;
+        }
+
+        editor.addEventListener('input', function() {
+            updateLineNumbers();
+            saveContent();
+        });
+
+        editor.addEventListener('scroll', syncScroll);
+
+        editor.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const spaces = '    ';
+                const start = editor.selectionStart;
+                const end = editor.selectionEnd;
+                editor.value = editor.value.substring(0, start) + spaces + editor.value.substring(end);
+                editor.selectionStart = editor.selectionEnd = start + spaces.length;
+                saveContent();
+            }
+        });
+
+        // Custom select logic
+        function setupCustomSelect(selectId, triggerId, dropdownId, onChange) {
+            const selectEl   = document.getElementById(selectId);
+            const triggerEl  = document.getElementById(triggerId);
+            const dropdownEl = document.getElementById(dropdownId);
+
+            triggerEl.addEventListener('click', function(e) {
+                e.stopPropagation();
+                document.querySelectorAll('.custom-select.open').forEach(function(el) {
+                    if (el !== selectEl) el.classList.remove('open');
+                });
+                selectEl.classList.toggle('open');
+            });
+
+            dropdownEl.addEventListener('click', function(e) {
+                const option = e.target.closest('.custom-select-option');
+                if (!option) return;
+                const value = option.dataset.value;
+                triggerEl.textContent = option.textContent;
+                dropdownEl.querySelectorAll('.custom-select-option').forEach(function(o) {
+                    o.classList.toggle('selected', o === option);
+                });
+                selectEl.classList.remove('open');
+                onChange(value);
+            });
+        }
+
+        document.addEventListener('click', function() {
+            document.querySelectorAll('.custom-select.open').forEach(function(el) {
+                el.classList.remove('open');
+            });
+        });
+
+        setupCustomSelect('language-select', 'language-trigger', 'language-dropdown', function(value) {
+            currentLanguage = value;
+        });
+
+        setupCustomSelect('font-size-select', 'font-size-trigger', 'font-size-dropdown', function(value) {
+            editor.style.fontSize = value + 'px';
+            lineNumbers.style.fontSize = value + 'px';
+        });
+
+        document.getElementById('clear-btn').addEventListener('click', function() {
+            output.innerHTML = '';
+        });
+
+        document.getElementById('run-btn').addEventListener('click', function() {
+            const code = editor.value;
+            console.log('RUNCODE:' + currentLanguage + ':' + code);
+        });
+
+        function saveContent() {
+            console.log('SAVECODECONTENT:' + fileId + ':' + editor.value);
+        }
+
+        function loadContent(content) {
+            if (!content) return;
+            editor.value = content;
+            updateLineNumbers();
+        }
+
+        function showOutput(text, isError) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            div.className = isError ? 'output-error' : 'output-success';
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        updateLineNumbers();
+    </script>
+</body>
+</html>

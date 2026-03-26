@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scribble Docs</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background-color: #0d0d0f;
+            color: #e8e8f0;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            color-scheme: dark;
+        }
+        #top-bar {
+            background-color: #1a1a1f;
+            border-bottom: 1px solid #2a2a35;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        #doc-name {
+            color: #e8e8f0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        #toolbar {
+            background-color: #111115;
+            border-bottom: 1px solid #2a2a35;
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #toolbar button {
+            background-color: transparent;
+            color: #e8e8f0;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        #toolbar button:hover {
+            background-color: #2a2a35;
+        }
+        #toolbar button.active {
+            background-color: #6c63ff;
+            color: white;
+        }
+
+        /* Custom dropdown */
+        .custom-select {
+            position: relative;
+            display: inline-block;
+        }
+        .custom-select-trigger {
+            background-color: #1e1e28;
+            color: #e8e8f0;
+            border: 1px solid #2a2a35;
+            border-radius: 4px;
+            padding: 3px 24px 3px 6px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+            min-width: 60px;
+            position: relative;
+        }
+        .custom-select-trigger::after {
+            content: '▾';
+            position: absolute;
+            right: 6px;
+            font-size: 10px;
+            color: #6b6b80;
+        }
+        .custom-select-trigger:hover {
+            background-color: #2a2a35;
+        }
+        .custom-select.open .custom-select-trigger {
+            border-color: #6c63ff;
+        }
+        .custom-select-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 2px);
+            left: 0;
+            background-color: #1e1e28;
+            border: 1px solid #2a2a35;
+            border-radius: 4px;
+            z-index: 1000;
+            min-width: 100%;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+        .custom-select.open .custom-select-dropdown {
+            display: block;
+        }
+        .custom-select-option {
+            padding: 5px 10px;
+            font-size: 13px;
+            color: #e8e8f0;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .custom-select-option:hover {
+            background-color: #2a2a35;
+        }
+        .custom-select-option.selected {
+            background-color: #6c63ff33;
+            color: #a09cf7;
+        }
+
+        .divider {
+            width: 1px;
+            height: 20px;
+            background-color: #2a2a35;
+            margin: 0 4px;
+        }
+        #btn-bold { font-weight: bold; }
+        #btn-italic { font-style: italic; }
+        #btn-underline { text-decoration: underline; }
+        #page-container {
+            flex: 1;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+            background-color: #0d0d0f;
+        }
+        #page {
+            background-color: #1a1a1f;
+            width: 800px;
+            min-height: 1000px;
+            padding: 60px;
+            border-radius: 4px;
+            border: 1px solid #2a2a35;
+            outline: none;
+            font-size: 14px;
+            line-height: 1.8;
+            color: #e8e8f0;
+        }
+        #page:focus {
+            border-color: #6c63ff;
+        }
+        input[type="color"] {
+            width: 28px;
+            height: 24px;
+            border: 1px solid #2a2a35;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 0;
+            background: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="top-bar">
+        <span id="doc-name">My Document</span>
+    </div>
+
+    <div id="toolbar">
+        <!-- Custom font family dropdown -->
+        <div class="custom-select" id="font-family-select">
+            <div class="custom-select-trigger" id="font-family-trigger">Segoe UI</div>
+            <div class="custom-select-dropdown" id="font-family-dropdown">
+                <div class="custom-select-option selected" data-value="Segoe UI">Segoe UI</div>
+                <div class="custom-select-option" data-value="Arial">Arial</div>
+                <div class="custom-select-option" data-value="Times New Roman">Times New Roman</div>
+                <div class="custom-select-option" data-value="Courier New">Courier New</div>
+                <div class="custom-select-option" data-value="Georgia">Georgia</div>
+                <div class="custom-select-option" data-value="Verdana">Verdana</div>
+            </div>
+        </div>
+
+        <!-- Custom font size dropdown -->
+        <div class="custom-select" id="font-size-select">
+            <div class="custom-select-trigger" id="font-size-trigger">14</div>
+            <div class="custom-select-dropdown" id="font-size-dropdown">
+                <div class="custom-select-option" data-value="10">10</div>
+                <div class="custom-select-option" data-value="11">11</div>
+                <div class="custom-select-option selected" data-value="14">14</div>
+                <div class="custom-select-option" data-value="16">16</div>
+                <div class="custom-select-option" data-value="18">18</div>
+                <div class="custom-select-option" data-value="24">24</div>
+                <div class="custom-select-option" data-value="36">36</div>
+                <div class="custom-select-option" data-value="48">48</div>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <button id="btn-bold">B</button>
+        <button id="btn-italic">I</button>
+        <button id="btn-underline">U</button>
+
+        <div class="divider"></div>
+
+        <button id="btn-align-left">≡</button>
+        <button id="btn-align-center">≡</button>
+        <button id="btn-align-right">≡</button>
+
+        <div class="divider"></div>
+
+        <label style="color: #6b6b80; font-size: 12px;">Text</label>
+        <input type="color" id="text-color" value="#e8e8f0">
+    </div>
+
+    <div id="page-container">
+        <div id="page" contenteditable="true"></div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const docName = urlParams.get('name') || 'My Document';
+        const docId = urlParams.get('id');
+
+        document.getElementById('doc-name').textContent = docName;
+
+        function saveContent() {
+            const content = document.getElementById('page').innerHTML;
+            console.log('SAVEDOCCONTENT:' + docId + ':' + content);
+        }
+
+        function loadContent(content) {
+            if (!content) return;
+            document.getElementById('page').innerHTML = content;
+        }
+
+        document.getElementById('page').addEventListener('input', function() {
+            saveContent();
+        });
+
+        // Custom select logic
+        function setupCustomSelect(selectId, triggerId, dropdownId, onChange) {
+            const selectEl  = document.getElementById(selectId);
+            const triggerEl = document.getElementById(triggerId);
+            const dropdownEl = document.getElementById(dropdownId);
+
+            triggerEl.addEventListener('click', function(e) {
+                e.stopPropagation();
+                document.querySelectorAll('.custom-select.open').forEach(function(el) {
+                    if (el !== selectEl) el.classList.remove('open');
+                });
+                selectEl.classList.toggle('open');
+            });
+
+            dropdownEl.addEventListener('click', function(e) {
+                const option = e.target.closest('.custom-select-option');
+                if (!option) return;
+                const value = option.dataset.value;
+                triggerEl.textContent = value;
+                dropdownEl.querySelectorAll('.custom-select-option').forEach(function(o) {
+                    o.classList.toggle('selected', o === option);
+                });
+                selectEl.classList.remove('open');
+                onChange(value);
+            });
+        }
+
+        document.addEventListener('click', function() {
+            document.querySelectorAll('.custom-select.open').forEach(function(el) {
+                el.classList.remove('open');
+            });
+        });
+
+        setupCustomSelect('font-family-select', 'font-family-trigger', 'font-family-dropdown', function(value) {
+            document.execCommand('fontName', false, value);
+        });
+
+        setupCustomSelect('font-size-select', 'font-size-trigger', 'font-size-dropdown', function(value) {
+            document.execCommand('fontSize', false, value);
+        });
+
+        document.getElementById('btn-bold').addEventListener('click', function() {
+            document.execCommand('bold');
+            this.classList.toggle('active');
+        });
+
+        document.getElementById('btn-italic').addEventListener('click', function() {
+            document.execCommand('italic');
+            this.classList.toggle('active');
+        });
+
+        document.getElementById('btn-underline').addEventListener('click', function() {
+            document.execCommand('underline');
+            this.classList.toggle('active');
+        });
+
+        document.getElementById('btn-align-left').addEventListener('click', function() {
+            document.execCommand('justifyLeft');
+        });
+
+        document.getElementById('btn-align-center').addEventListener('click', function() {
+            document.execCommand('justifyCenter');
+        });
+
+        document.getElementById('btn-align-right').addEventListener('click', function() {
+            document.execCommand('justifyRight');
+        });
+
+        document.getElementById('text-color').addEventListener('input', function() {
+            document.execCommand('foreColor', false, this.value);
+        });
+    </script>
+</body>
+</html>

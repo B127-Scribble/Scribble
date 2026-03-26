@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scribble Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background-color: #0d0d0f;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        #calculator {
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            border-radius: 20px;
+            padding: 20px;
+            width: 380px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            border: 1px solid #2a2a35;
+        }
+        #display {
+            background-color: #0a0a14;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid #2a2a35;
+            min-height: 90px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: flex-end;
+        }
+        #expression {
+            color: #6b6b80;
+            font-size: 13px;
+            min-height: 20px;
+            word-break: break-all;
+            text-align: right;
+        }
+        #result {
+            color: #e8e8f0;
+            font-size: 32px;
+            font-weight: 300;
+            word-break: break-all;
+            text-align: right;
+        }
+        #history {
+            background-color: #0a0a14;
+            border-radius: 10px;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+            border: 1px solid #2a2a35;
+            height: 60px;
+            overflow-y: auto;
+            font-size: 11px;
+            color: #6b6b80;
+        }
+        .btn-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+        .btn {
+            background-color: #1e1e28;
+            color: #e8e8f0;
+            border: none;
+            border-radius: 10px;
+            padding: 14px 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.1s;
+            border: 1px solid #2a2a35;
+        }
+        .btn:hover {
+            background-color: #2a2a35;
+            transform: translateY(-1px);
+        }
+        .btn:active {
+            transform: translateY(1px);
+            background-color: #3a3a45;
+        }
+        .btn-operator {
+            background-color: #2a2040;
+            color: #a78bfa;
+        }
+        .btn-operator:hover {
+            background-color: #3a3050;
+        }
+        .btn-equals {
+            background-color: #6c63ff;
+            color: white;
+        }
+        .btn-equals:hover {
+            background-color: #5a52d5;
+        }
+        .btn-clear {
+            background-color: #3a1a1a;
+            color: #f87171;
+        }
+        .btn-clear:hover {
+            background-color: #4a2a2a;
+        }
+        .btn-sci {
+            background-color: #1a2040;
+            color: #93c5fd;
+            font-size: 12px;
+        }
+        .btn-sci:hover {
+            background-color: #2a3050;
+        }
+        .btn-span2 {
+            grid-column: span 2;
+        }
+    </style>
+</head>
+<body>
+    <div id="calculator">
+        <div id="history"></div>
+        <div id="display">
+            <div id="expression"></div>
+            <div id="result">0</div>
+        </div>
+        <div class="btn-grid">
+            <button class="btn btn-sci" onclick="inputFunc('sin(')">sin</button>
+            <button class="btn btn-sci" onclick="inputFunc('cos(')">cos</button>
+            <button class="btn btn-sci" onclick="inputFunc('tan(')">tan</button>
+            <button class="btn btn-sci" onclick="inputFunc('log(')">log</button>
+            <button class="btn btn-sci" onclick="inputFunc('ln(')">ln</button>
+
+            <button class="btn btn-sci" onclick="inputFunc('sqrt(')">√</button>
+            <button class="btn btn-sci" onclick="inputFunc('pow(')">xʸ</button>
+            <button class="btn btn-sci" onclick="inputFunc('pi')">π</button>
+            <button class="btn btn-sci" onclick="inputFunc('e')">e</button>
+            <button class="btn btn-sci" onclick="inputFunc('abs(')">|x|</button>
+
+            <button class="btn btn-clear" onclick="clearAll()">AC</button>
+            <button class="btn btn-clear" onclick="deleteLast()">⌫</button>
+            <button class="btn btn-operator" onclick="inputChar('(')">(</button>
+            <button class="btn btn-operator" onclick="inputChar(')')">)</button>
+            <button class="btn btn-operator" onclick="inputChar('%')">%</button>
+
+            <button class="btn" onclick="inputChar('7')">7</button>
+            <button class="btn" onclick="inputChar('8')">8</button>
+            <button class="btn" onclick="inputChar('9')">9</button>
+            <button class="btn btn-operator" onclick="inputChar('/')">÷</button>
+            <button class="btn btn-sci" onclick="inputFunc('fact(')">n!</button>
+
+            <button class="btn" onclick="inputChar('4')">4</button>
+            <button class="btn" onclick="inputChar('5')">5</button>
+            <button class="btn" onclick="inputChar('6')">6</button>
+            <button class="btn btn-operator" onclick="inputChar('*')">×</button>
+            <button class="btn btn-sci" onclick="inputChar('^')">x²</button>
+
+            <button class="btn" onclick="inputChar('1')">1</button>
+            <button class="btn" onclick="inputChar('2')">2</button>
+            <button class="btn" onclick="inputChar('3')">3</button>
+            <button class="btn btn-operator" onclick="inputChar('-')">−</button>
+            <button class="btn btn-sci" onclick="toggleSign()">+/-</button>
+
+            <button class="btn btn-span2" onclick="inputChar('0')">0</button>
+            <button class="btn" onclick="inputChar('.')">.</button>
+            <button class="btn btn-operator" onclick="inputChar('+')">+</button>
+            <button class="btn btn-equals" onclick="calculate()">=</button>
+        </div>
+    </div>
+
+    <script>
+        let expression = '';
+        let justCalculated = false;
+
+        function updateDisplay() {
+            document.getElementById('expression').textContent = expression;
+        }
+
+        function inputChar(char) {
+            if (justCalculated && !isNaN(char) ) {
+                expression = '';
+            }
+            justCalculated = false;
+            expression += char;
+            updateDisplay();
+        }
+
+        function inputFunc(func) {
+            if (justCalculated) expression = '';
+            justCalculated = false;
+            expression += func;
+            updateDisplay();
+        }
+
+        function clearAll() {
+            expression = '';
+            document.getElementById('result').textContent = '0';
+            document.getElementById('expression').textContent = '';
+            justCalculated = false;
+        }
+
+        function deleteLast() {
+            expression = expression.slice(0, -1);
+            updateDisplay();
+        }
+
+        function toggleSign() {
+            if (expression.startsWith('-')) {
+                expression = expression.slice(1);
+            } else {
+                expression = '-' + expression;
+            }
+            updateDisplay();
+        }
+
+        function factorial(n) {
+            if (n < 0) return NaN;
+            if (n === 0 || n === 1) return 1;
+            let result = 1;
+            for (let i = 2; i <= n; i++) result *= i;
+            return result;
+        }
+
+        function calculate() {
+            if (!expression) return;
+
+            try {
+                let expr = expression
+                    .replace(/sin\(/g, 'Math.sin(Math.PI/180*')
+                    .replace(/cos\(/g, 'Math.cos(Math.PI/180*')
+                    .replace(/tan\(/g, 'Math.tan(Math.PI/180*')
+                    .replace(/log\(/g, 'Math.log10(')
+                    .replace(/ln\(/g, 'Math.log(')
+                    .replace(/sqrt\(/g, 'Math.sqrt(')
+                    .replace(/abs\(/g, 'Math.abs(')
+                    .replace(/pow\(/g, 'Math.pow(')
+                    .replace(/fact\(([^)]+)\)/g, (m, n) => factorial(parseFloat(n)))
+                    .replace(/pi/g, 'Math.PI')
+                    .replace(/\be\b/g, 'Math.E')
+                    .replace(/\^/g, '**')
+                    .replace(/%/g, '/100');
+
+                const result = eval(expr);
+                const rounded = Math.round(result * 1e10) / 1e10;
+
+                document.getElementById('result').textContent = rounded;
+
+                const historyDiv = document.getElementById('history');
+                historyDiv.innerHTML += `<div>${expression} = ${rounded}</div>`;
+                historyDiv.scrollTop = historyDiv.scrollHeight;
+
+                expression = String(rounded);
+                justCalculated = true;
+
+            } catch(e) {
+                document.getElementById('result').textContent = 'Error';
+                justCalculated = true;
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key >= '0' && e.key <= '9') inputChar(e.key);
+            else if (e.key === '+') inputChar('+');
+            else if (e.key === '-') inputChar('-');
+            else if (e.key === '*') inputChar('*');
+            else if (e.key === '/') { e.preventDefault(); inputChar('/'); }
+            else if (e.key === '.') inputChar('.');
+            else if (e.key === '(') inputChar('(');
+            else if (e.key === ')') inputChar(')');
+            else if (e.key === 'Enter') calculate();
+            else if (e.key === 'Backspace') deleteLast();
+            else if (e.key === 'Escape') clearAll();
+        });
+    </script>
+</body>
+</html>

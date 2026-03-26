@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scribble Paint</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background-color: #0d0d0f;
+            color: #e8e8f0;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #toolbar {
+            background-color: #111115;
+            border-bottom: 1px solid #2a2a35;
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        #toolbar button {
+            background-color: #1e1e28;
+            color: #e8e8f0;
+            border: 1px solid #2a2a35;
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        #toolbar button:hover {
+            background-color: #2a2a35;
+        }
+        #toolbar button.active {
+            background-color: #6c63ff;
+            border-color: #6c63ff;
+        }
+        .divider {
+            width: 1px;
+            height: 20px;
+            background-color: #2a2a35;
+            margin: 0 4px;
+        }
+        #toolbar label {
+            color: #6b6b80;
+            font-size: 12px;
+        }
+        #toolbar input[type="range"] {
+            width: 80px;
+            accent-color: #6c63ff;
+        }
+        #toolbar input[type="color"] {
+            width: 32px;
+            height: 28px;
+            border: 1px solid #2a2a35;
+            border-radius: 6px;
+            cursor: pointer;
+            padding: 0;
+            background: none;
+        }
+        #size-display {
+            color: #6b6b80;
+            font-size: 12px;
+            min-width: 20px;
+        }
+        #canvas-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #0d0d0f;
+            overflow: hidden;
+        }
+        #canvas {
+            background-color: white;
+            cursor: crosshair;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+        }
+        #color-palette {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .palette-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .palette-color:hover {
+            border-color: #e8e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div id="toolbar">
+        <button id="btn-pencil" class="active" title="Pencil">✏️</button>
+        <button id="btn-brush" title="Brush">🖌️</button>
+        <button id="btn-eraser" title="Eraser">🧹</button>
+        <button id="btn-fill" title="Fill">🪣</button>
+        <button id="btn-line" title="Line">╱</button>
+        <button id="btn-rect" title="Rectangle">▭</button>
+        <button id="btn-circle" title="Circle">○</button>
+
+        <div class="divider"></div>
+
+        <label>Size</label>
+        <input type="range" id="brush-size" min="1" max="50" value="5">
+        <span id="size-display">5</span>
+
+        <div class="divider"></div>
+
+        <input type="color" id="color-picker" value="#000000">
+
+        <div id="color-palette">
+            <div class="palette-color" style="background:#000000" onclick="setColor('#000000')"></div>
+            <div class="palette-color" style="background:#ffffff" onclick="setColor('#ffffff')"></div>
+            <div class="palette-color" style="background:#f87171" onclick="setColor('#f87171')"></div>
+            <div class="palette-color" style="background:#fb923c" onclick="setColor('#fb923c')"></div>
+            <div class="palette-color" style="background:#facc15" onclick="setColor('#facc15')"></div>
+            <div class="palette-color" style="background:#86efac" onclick="setColor('#86efac')"></div>
+            <div class="palette-color" style="background:#60a5fa" onclick="setColor('#60a5fa')"></div>
+            <div class="palette-color" style="background:#a78bfa" onclick="setColor('#a78bfa')"></div>
+            <div class="palette-color" style="background:#f472b6" onclick="setColor('#f472b6')"></div>
+            <div class="palette-color" style="background:#6c63ff" onclick="setColor('#6c63ff')"></div>
+        </div>
+
+        <div class="divider"></div>
+        <button id="btn-clear">🗑 Clear</button>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+
+        canvas.width = 900;
+        canvas.height = 600;
+
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        let tool = 'pencil';
+        let isDrawing = false;
+        let color = '#000000';
+        let brushSize = 5;
+        let startX, startY;
+        let snapshot;
+
+        function setTool(t) {
+            tool = t;
+            document.querySelectorAll('#toolbar button').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-' + t).classList.add('active');
+            canvas.style.cursor = t === 'eraser' ? 'cell' : 'crosshair';
+        }
+
+        function setColor(c) {
+            color = c;
+            document.getElementById('color-picker').value = c;
+        }
+
+        document.getElementById('btn-pencil').addEventListener('click', () => setTool('pencil'));
+        document.getElementById('btn-brush').addEventListener('click', () => setTool('brush'));
+        document.getElementById('btn-eraser').addEventListener('click', () => setTool('eraser'));
+        document.getElementById('btn-fill').addEventListener('click', () => setTool('fill'));
+        document.getElementById('btn-line').addEventListener('click', () => setTool('line'));
+        document.getElementById('btn-rect').addEventListener('click', () => setTool('rect'));
+        document.getElementById('btn-circle').addEventListener('click', () => setTool('circle'));
+
+        document.getElementById('color-picker').addEventListener('input', function() {
+            color = this.value;
+        });
+
+        document.getElementById('brush-size').addEventListener('input', function() {
+            brushSize = this.value;
+            document.getElementById('size-display').textContent = this.value;
+        });
+
+        document.getElementById('btn-clear').addEventListener('click', function() {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        });
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+
+        function floodFill(x, y, fillColor) {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            const index = (Math.floor(y) * canvas.width + Math.floor(x)) * 4;
+
+            const targetR = data[index];
+            const targetG = data[index + 1];
+            const targetB = data[index + 2];
+
+            const fill = hexToRgb(fillColor);
+            if (targetR === fill.r && targetG === fill.g && targetB === fill.b) return;
+
+            const stack = [[Math.floor(x), Math.floor(y)]];
+
+            while (stack.length) {
+                const [cx, cy] = stack.pop();
+                const i = (cy * canvas.width + cx) * 4;
+
+                if (cx < 0 || cx >= canvas.width || cy < 0 || cy >= canvas.height) continue;
+                if (data[i] !== targetR || data[i+1] !== targetG || data[i+2] !== targetB) continue;
+
+                data[i] = fill.r;
+                data[i+1] = fill.g;
+                data[i+2] = fill.b;
+                data[i+3] = 255;
+
+                stack.push([cx+1, cy], [cx-1, cy], [cx, cy+1], [cx, cy-1]);
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : { r: 0, g: 0, b: 0 };
+        }
+
+        canvas.addEventListener('mousedown', function(e) {
+            isDrawing = true;
+            const pos = getPos(e);
+            startX = pos.x;
+            startY = pos.y;
+
+            if (tool === 'fill') {
+                floodFill(pos.x, pos.y, color);
+                isDrawing = false;
+                return;
+            }
+
+            snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+        });
+
+        canvas.addEventListener('mousemove', function(e) {
+            if (!isDrawing) return;
+            const pos = getPos(e);
+
+            if (tool === 'pencil') {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = color;
+                ctx.lineWidth = brushSize;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+            } else if (tool === 'brush') {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = color;
+                ctx.lineWidth = brushSize * 3;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+            } else if (tool === 'eraser') {
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.strokeStyle = 'rgba(0,0,0,1)';
+                ctx.lineWidth = brushSize * 2;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+                ctx.globalCompositeOperation = 'source-over';
+            } else if (tool === 'line') {
+                ctx.putImageData(snapshot, 0, 0);
+                ctx.beginPath();
+                ctx.strokeStyle = color;
+                ctx.lineWidth = brushSize;
+                ctx.lineCap = 'round';
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+            } else if (tool === 'rect') {
+                ctx.putImageData(snapshot, 0, 0);
+                ctx.beginPath();
+                ctx.strokeStyle = color;
+                ctx.lineWidth = brushSize;
+                ctx.strokeRect(startX, startY, pos.x - startX, pos.y - startY);
+            } else if (tool === 'circle') {
+                ctx.putImageData(snapshot, 0, 0);
+                ctx.beginPath();
+                ctx.strokeStyle = color;
+                ctx.lineWidth = brushSize;
+                const radius = Math.sqrt(Math.pow(pos.x - startX, 2) + Math.pow(pos.y - startY, 2));
+                ctx.arc(startX, startY, radius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        });
+
+        canvas.addEventListener('mouseup', function() {
+            isDrawing = false;
+            ctx.beginPath();
+        });
+
+        canvas.addEventListener('mouseleave', function() {
+            isDrawing = false;
+            ctx.beginPath();
+        });
+    </script>
+</body>
+</html>

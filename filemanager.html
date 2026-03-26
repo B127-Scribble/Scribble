@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scribble Files</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: #0d0d0f;
+            color: #e8e8f0;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #top-bar {
+            background-color: #1a1a1f;
+            border-bottom: 1px solid #2a2a35;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #title {
+            color: #6c63ff;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        #path-bar {
+            flex: 1;
+            background-color: #1e1e28;
+            color: #e8e8f0;
+            border: 1.5px solid #2a2a35;
+            border-radius: 8px;
+            padding: 5px 12px;
+            font-size: 13px;
+            outline: none;
+        }
+        #path-bar:focus { border-color: #6c63ff; }
+        .nav-btn {
+            background-color: #1e1e28;
+            color: #e8e8f0;
+            border: 1px solid #2a2a35;
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .nav-btn:hover { background-color: #2a2a35; }
+        #toolbar {
+            background-color: #111115;
+            border-bottom: 1px solid #2a2a35;
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tool-btn {
+            background-color: transparent;
+            color: #e8e8f0;
+            border: 1px solid #2a2a35;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .tool-btn:hover { background-color: #2a2a35; }
+        .tool-btn.danger:hover { background-color: #f87171; border-color: #f87171; }
+        #main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        #sidebar {
+            width: 180px;
+            background-color: #111115;
+            border-right: 1px solid #2a2a35;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow-y: auto;
+        }
+        .sidebar-item {
+            padding: 8px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #6b6b80;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sidebar-item:hover {
+            background-color: #1e1e28;
+            color: #e8e8f0;
+        }
+        #file-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+        #file-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 12px;
+        }
+        .file-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            user-select: none;
+        }
+        .file-item:hover {
+            background-color: #1e1e28;
+            border-color: #2a2a35;
+        }
+        .file-item.selected {
+            background-color: #1e1e28;
+            border-color: #6c63ff;
+        }
+        .file-icon {
+            font-size: 36px;
+        }
+        .file-name {
+            font-size: 11px;
+            color: #e8e8f0;
+            text-align: center;
+            word-break: break-all;
+            max-width: 90px;
+        }
+        #status-bar {
+            background-color: #111115;
+            border-top: 1px solid #2a2a35;
+            padding: 4px 12px;
+            font-size: 11px;
+            color: #6b6b80;
+            display: flex;
+            justify-content: space-between;
+        }
+        #empty-msg {
+            color: #6b6b80;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 60px;
+        }
+    </style>
+</head>
+<body>
+    <div id="top-bar">
+        <span id="title">📁 Files</span>
+        <button class="nav-btn" id="btn-back">←</button>
+        <button class="nav-btn" id="btn-up">↑</button>
+        <input type="text" id="path-bar" readonly>
+    </div>
+
+    <div id="toolbar">
+        <button class="tool-btn" onclick="newFolder()">📁 New Folder</button>
+        <button class="tool-btn" onclick="renameSelected()">✏️ Rename</button>
+        <button class="tool-btn danger" onclick="deleteSelected()">🗑 Delete</button>
+        <button class="tool-btn" onclick="copySelected()">📋 Copy</button>
+        <button class="tool-btn" onclick="pasteHere()">📌 Paste</button>
+    </div>
+
+    <div id="main">
+        <div id="sidebar">
+            <div class="sidebar-item" onclick="console.log('NAVIGATE:Desktop')">🖥 Desktop</div>
+            <div class="sidebar-item" onclick="console.log('NAVIGATE:Documents')">📄 Documents</div>
+            <div class="sidebar-item" onclick="console.log('NAVIGATE:Downloads')">⬇ Downloads</div>
+            <div class="sidebar-item" onclick="console.log('NAVIGATE:Pictures')">🖼 Pictures</div>
+            <div class="sidebar-item" onclick="console.log('NAVIGATE:Music')">🎵 Music</div>
+            <div class="sidebar-item" onclick="console.log('NAVIGATE:Videos')">🎬 Videos</div>
+        </div>
+        <div id="file-area">
+            <div id="file-grid"></div>
+            <div id="empty-msg" style="display:none">This folder is empty</div>
+        </div>
+    </div>
+
+    <div id="status-bar">
+        <span id="status-left">Ready</span>
+        <span id="status-right"></span>
+    </div>
+
+    <script>
+        let currentPath = '';
+        let selectedItem = null;
+        let clipboard = null;
+        let history = [];
+
+        function getIcon(name, isDir) {
+            if (isDir) return '📁';
+            const ext = name.split('.').pop().toLowerCase();
+            const icons = {
+                py: '🐍', js: '📜', html: '🌐', css: '🎨',
+                txt: '📝', md: '📝', json: '📋', csv: '📊',
+                png: '🖼', jpg: '🖼', jpeg: '🖼', gif: '🖼',
+                mp3: '🎵', wav: '🎵', mp4: '🎬', avi: '🎬',
+                pdf: '📕', doc: '📘', docx: '📘', xlsx: '📗',
+                zip: '📦', rar: '📦', exe: '⚙️', bat: '⚙️'
+            };
+            return icons[ext] || '📄';
+        }
+
+        function renderFiles(files) {
+            const grid = document.getElementById('file-grid');
+            const empty = document.getElementById('empty-msg');
+            grid.innerHTML = '';
+            selectedItem = null;
+
+            if (files.length === 0) {
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+
+            files.forEach(function(file) {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.dataset.name = file.name;
+                item.dataset.isDir = file.isDir;
+                item.dataset.path = file.path;
+
+                const icon = document.createElement('div');
+                icon.className = 'file-icon';
+                icon.textContent = getIcon(file.name, file.isDir);
+
+                const name = document.createElement('div');
+                name.className = 'file-name';
+                name.textContent = file.name;
+
+                item.appendChild(icon);
+                item.appendChild(name);
+
+                item.addEventListener('click', function(e) {
+                    document.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
+                    item.classList.add('selected');
+                    selectedItem = file;
+                    document.getElementById('status-left').textContent = file.name;
+                });
+
+                item.addEventListener('dblclick', function() {
+                    if (file.isDir) {
+                        history.push(currentPath);
+                        console.log('NAVIGATE:' + file.path);
+                    } else {
+                        console.log('OPENFILE:' + file.path);
+                    }
+                });
+
+                grid.appendChild(item);
+            });
+
+            document.getElementById('status-right').textContent = files.length + ' items';
+        }
+
+        function loadFiles(data) {
+            if (!data) return;
+            if (typeof data === 'string') data = JSON.parse(data);
+            currentPath = data.path;
+            document.getElementById('path-bar').value = data.path;
+            renderFiles(data.files);
+        }
+
+        function newFolder() {
+            const name = prompt('Folder name:');
+            if (!name) return;
+            console.log('NEWFOLDER:' + currentPath + '|' + name);
+        }
+
+        function renameSelected() {
+            if (!selectedItem) return;
+            const name = prompt('New name:', selectedItem.name);
+            if (!name) return;
+            console.log('RENAME:' + selectedItem.path + '|' + name);
+        }
+
+        function deleteSelected() {
+            if (!selectedItem) return;
+            if (!confirm('Delete ' + selectedItem.name + '?')) return;
+            console.log('DELETE:' + selectedItem.path);
+        }
+
+        function copySelected() {
+            if (!selectedItem) return;
+            clipboard = selectedItem.path;
+            document.getElementById('status-left').textContent = 'Copied: ' + selectedItem.name;
+        }
+
+        function pasteHere() {
+            if (!clipboard) return;
+            console.log('PASTE:' + clipboard + '|' + currentPath);
+        }
+
+        document.getElementById('btn-back').addEventListener('click', function() {
+            if (history.length > 0) {
+                const prev = history.pop();
+                console.log('NAVIGATE:' + prev);
+            }
+        });
+
+        document.getElementById('btn-up').addEventListener('click', function() {
+            console.log('NAVIGATEUP:' + currentPath);
+        });
+    </script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Scribble Slides</title>
+    <title>Scribble Code</title>
     <style>
         * {
             margin: 0;
@@ -37,7 +37,7 @@
         button:hover {
             background-color: #5a52d5;
         }
-        #presentations-container {
+        #codes-container {
             margin-top: 30px;
             display: flex;
             flex-wrap: wrap;
@@ -48,7 +48,7 @@
             font-size: 14px;
             margin-top: 10px;
         }
-        .pres-card {
+        .code-card {
             background-color: #1a1a1f;
             border: 1px solid #2a2a35;
             border-radius: 10px;
@@ -62,7 +62,7 @@
             justify-content: center;
             user-select: none;
         }
-        .pres-card:hover {
+        .code-card:hover {
             border-color: #6c63ff;
             background-color: #1e1e28;
         }
@@ -86,62 +86,62 @@
     </style>
 </head>
 <body>
-    <h1>Scribble Slides</h1>
-    <p class="subtitle">Your presentations, saved to the cloud</p>
-    <button id="new-pres-btn">+ New Presentation</button>
-    <div id="presentations-container">
-        <p id="empty-message">No presentations yet. Click + New Presentation to create one!</p>
+    <h1>Scribble Code</h1>
+    <p class="subtitle">Your code files, saved to the cloud</p>
+    <button id="new-code-btn">+ New File</button>
+    <div id="codes-container">
+        <p id="empty-message">No files yet. Click + New File to create one!</p>
     </div>
 
     <script>
-        let allPresentations = [];
+        let allCodes = [];
 
-        const newPresBtn = document.getElementById('new-pres-btn');
-        const presContainer = document.getElementById('presentations-container');
+        const newCodeBtn = document.getElementById('new-code-btn');
+        const codesContainer = document.getElementById('codes-container');
         const emptyMessage = document.getElementById('empty-message');
 
-        function loadSlides(presentations) {
-            if (!presentations || presentations.length === 0) return;
-            allPresentations = presentations;
-            presentations.forEach(function(pres) {
-                createPresCard(pres.title, pres.id);
+        function loadCodes(codes) {
+            if (!codes || codes.length === 0) return;
+            allCodes = codes;
+            codes.forEach(function(code) {
+                createCodeCard(code.title, code.id);
             });
         }
 
-        newPresBtn.addEventListener('click', function() {
-            const name = prompt("Name your presentation:");
+        newCodeBtn.addEventListener('click', function() {
+            const name = prompt("Name your file:");
             if (!name) return;
 
-            const pres = {
+            const code = {
                 id: Date.now().toString(),
                 title: name,
                 content: ''
             };
 
-            allPresentations.push(pres);
-            console.log('SAVESLIDES:' + JSON.stringify(allPresentations));
-            createPresCard(pres.title, pres.id);
+            allCodes.push(code);
+            console.log('SAVECODE:' + JSON.stringify(allCodes));
+            createCodeCard(code.title, code.id);
         });
 
-        function createPresCard(name, id) {
+        function createCodeCard(name, id) {
             emptyMessage.style.display = 'none';
 
             const card = document.createElement('div');
-            card.className = 'pres-card';
+            card.className = 'code-card';
             card.dataset.id = id;
 
             card.addEventListener('click', function() {
-                window.location.href = 'slides_editor.html?id=' + id + '&name=' + encodeURIComponent(name);
+                window.location.href = 'code_editor.html?id=' + id + '&name=' + encodeURIComponent(name);
             });
 
             card.addEventListener('dblclick', function() {
-                const newName = prompt("Rename presentation:", cardName.textContent);
+                const newName = prompt("Rename file:", cardName.textContent);
                 if (!newName) return;
                 cardName.textContent = newName;
-                allPresentations.forEach(function(pres) {
-                    if (pres.id === id) pres.title = newName;
+                allCodes.forEach(function(code) {
+                    if (code.id === id) code.title = newName;
                 });
-                console.log('SAVESLIDES:' + JSON.stringify(allPresentations));
+                console.log('SAVECODE:' + JSON.stringify(allCodes));
             });
 
             const cardName = document.createElement('p');
@@ -156,11 +156,11 @@
                 e.stopPropagation();
                 if (confirm("Delete " + name + "?")) {
                     card.remove();
-                    allPresentations = allPresentations.filter(function(pres) {
-                        return pres.id !== id;
+                    allCodes = allCodes.filter(function(code) {
+                        return code.id !== id;
                     });
-                    console.log('SAVESLIDES:' + JSON.stringify(allPresentations));
-                    if (presContainer.querySelectorAll('.pres-card').length === 0) {
+                    console.log('SAVECODE:' + JSON.stringify(allCodes));
+                    if (codesContainer.querySelectorAll('.code-card').length === 0) {
                         emptyMessage.style.display = 'block';
                     }
                 }
@@ -168,7 +168,7 @@
 
             card.appendChild(cardName);
             card.appendChild(deleteBtn);
-            presContainer.appendChild(card);
+            codesContainer.appendChild(card);
         }
     </script>
 </body>
