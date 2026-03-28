@@ -1,0 +1,10 @@
+{
+    "api": {
+        "url": "http://localhost:11434/api/chat",
+        "timeout":300
+    },
+    "model": {
+        "name": "gpt-oss:20b-cloud"
+    }
+
+}
