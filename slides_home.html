@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scribble Slides</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background-color: #0d0d0f;
+            color: #e8e8f0;
+            font-family: 'Segoe UI', sans-serif;
+            padding: 40px;
+        }
+        h1 {
+            font-size: 32px;
+            font-weight: 800;
+            color: #6c63ff;
+            margin-bottom: 8px;
+        }
+        p.subtitle {
+            font-size: 14px;
+            color: #6b6b80;
+            margin-bottom: 40px;
+        }
+        button {
+            background-color: #6c63ff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #5a52d5;
+        }
+        #presentations-container {
+            margin-top: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        #empty-message {
+            color: #6b6b80;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .pres-card {
+            background-color: #1a1a1f;
+            border: 1px solid #2a2a35;
+            border-radius: 10px;
+            padding: 20px;
+            width: 160px;
+            height: 100px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+        .pres-card:hover {
+            border-color: #6c63ff;
+            background-color: #1e1e28;
+        }
+        .card-name {
+            font-size: 14px;
+            color: #e8e8f0;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        .card-delete-btn {
+            background-color: transparent;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+        }
+        .card-delete-btn:hover {
+            background-color: #f87171;
+        }
+    </style>
+</head>
+<body>
+    <h1>Scribble Slides</h1>
+    <p class="subtitle">Your presentations, saved localy</p>
+    <button id="new-pres-btn">+ New Presentation</button>
+    <div id="presentations-container">
+        <p id="empty-message">No presentations yet. Click + New Presentation to create one!</p>
+    </div>
+
+    <script>
+        let allPresentations = [];
+
+        const newPresBtn = document.getElementById('new-pres-btn');
+        const presContainer = document.getElementById('presentations-container');
+        const emptyMessage = document.getElementById('empty-message');
+
+        function loadSlides(presentations) {
+            if (!presentations || presentations.length === 0) return;
+            allPresentations = presentations;
+            presentations.forEach(function(pres) {
+                createPresCard(pres.title, pres.id);
+            });
+        }
+
+        newPresBtn.addEventListener('click', function() {
+            const name = prompt("Name your presentation:");
+            if (!name) return;
+
+            const pres = {
+                id: Date.now().toString(),
+                title: name,
+                content: ''
+            };
+
+            allPresentations.push(pres);
+            console.log('SAVESLIDES:' + JSON.stringify(allPresentations));
+            createPresCard(pres.title, pres.id);
+        });
+
+        function createPresCard(name, id) {
+            emptyMessage.style.display = 'none';
+
+            const card = document.createElement('div');
+            card.className = 'pres-card';
+            card.dataset.id = id;
+
+            card.addEventListener('click', function() {
+                window.location.href = 'slides_editor.html?id=' + id + '&name=' + encodeURIComponent(name);
+            });
+
+            card.addEventListener('dblclick', function() {
+                const newName = prompt("Rename presentation:", cardName.textContent);
+                if (!newName) return;
+                cardName.textContent = newName;
+                allPresentations.forEach(function(pres) {
+                    if (pres.id === id) pres.title = newName;
+                });
+                console.log('SAVESLIDES:' + JSON.stringify(allPresentations));
+            });
+
+            const cardName = document.createElement('p');
+            cardName.textContent = name;
+            cardName.className = 'card-name';
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = '🗑';
+            deleteBtn.className = 'card-delete-btn';
+
+            deleteBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (confirm("Delete " + name + "?")) {
+                    card.remove();
+                    allPresentations = allPresentations.filter(function(pres) {
+                        return pres.id !== id;
+                    });
+                    console.log('SAVESLIDES:' + JSON.stringify(allPresentations));
+                    if (presContainer.querySelectorAll('.pres-card').length === 0) {
+                        emptyMessage.style.display = 'block';
+                    }
+                }
+            });
+
+            card.appendChild(cardName);
+            card.appendChild(deleteBtn);
+            presContainer.appendChild(card);
+        }
+    </script>
+</body>
+</html>
