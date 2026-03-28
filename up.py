@@ -1438,7 +1438,7 @@ def load_home_page(webview):
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
-                background: linear-gradient(135deg, #0d0d0f 0%, #1a0a2e 50%, #0d0d0f 100%);
+                background: linear-gradient(135deg, #0d0d0f 0%, #000814 50%, #0d0d0f 100%);
                 display: flex;
                 flex-direction: column;
                 align-items: center;
