@@ -1483,7 +1483,7 @@ def load_home_page(webview):
         <h1>Scribble</h1>
         <p> Your thoughts, your web.
         </p>
-        <input type="text" placeholder="Type b127 OR platformer OR fighter..."
+        <input type="text" placeholder="Type b127 OR platformer OR fighter OR battle..."
                onkeydown="if(event.key==='Enter') window.location.href='https://www.google.com/search?q='+this.value"/>
     </body>
     </html>
@@ -1643,6 +1643,26 @@ def ninja():
 def fighter():
     TRIGGER = "fighter"
     SCRIPT_TO_RUN = "fighter.py"
+    buffer = []
+
+    def on_key_event(event):
+        nonlocal buffer
+        if event.event_type == keyboard.KEY_DOWN:
+            buffer.append(event.name)
+            if len(buffer) > len(TRIGGER):
+                buffer.pop(0)
+            if "".join(buffer) == TRIGGER:
+                try:
+                    subprocess.Popen([sys.executable, SCRIPT_TO_RUN])
+                except FileNotFoundError:
+                    pass
+                buffer.clear()
+
+    keyboard.hook(on_key_event)
+
+def battle():
+    TRIGGER = "battle"
+    SCRIPT_TO_RUN = "war.py"
     buffer = []
 
     def on_key_event(event):
@@ -1837,8 +1857,10 @@ def launch_browser():
     ninja()
     plat()
     fighter()
+    battle()
 
 login = LoginScreen()
 login.show()
 app.exec()
 print(":)")
+ 
