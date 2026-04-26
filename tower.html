@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Tower Defense — Neon Siege</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    color: #fff;
+    min-height: 100vh;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  h1 {
+    font-size: 2.2rem;
+    background: linear-gradient(90deg, #00f5ff, #ff00ea);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+    letter-spacing: 2px;
+  }
+  .subtitle {
+    color: #aabbdd;
+    font-size: 0.95rem;
+    margin-bottom: 14px;
+  }
+  .game-wrap {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  canvas {
+    background: #1a1a2e;
+    border: 2px solid #444a78;
+    border-radius: 8px;
+    box-shadow: 0 0 30px rgba(0, 245, 255, 0.2);
+    cursor: crosshair;
+    display: block;
+  }
+  .panel {
+    width: 260px;
+    background: rgba(20, 22, 45, 0.85);
+    border: 1px solid #444a78;
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .stat {
+    background: #2a2f55;
+    padding: 8px;
+    border-radius: 6px;
+    text-align: center;
+  }
+  .stat .label {
+    font-size: 0.7rem;
+    color: #aabbdd;
+    text-transform: uppercase;
+  }
+  .stat .value {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #00f5ff;
+  }
+  .stat.coins .value { color: #ffd700; }
+  .stat.hp .value { color: #ff5577; }
+  .selected-cannon-display {
+    background: linear-gradient(135deg, #2a2f55, #3a3f75);
+    border: 2px solid #ff00ea;
+    color: #fff;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  .selected-cannon-display .name { font-weight: bold; font-size: 0.95rem; display: block; margin-bottom: 4px; }
+  .selected-cannon-display .info { font-size: 0.75rem; color: #ccd; }
+  .control-btn {
+    background: linear-gradient(90deg, #00f5ff, #0080ff);
+    color: #000;
+    border: none;
+    padding: 10px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .control-btn:hover { transform: scale(1.03); box-shadow: 0 0 15px rgba(0, 245, 255, 0.6); }
+  .control-btn.danger { background: linear-gradient(90deg, #ff00ea, #ff0080); color: #fff; }
+  .control-btn.gold { background: linear-gradient(90deg, #ffd700, #ff8800); color: #000; }
+  .instructions {
+    font-size: 0.78rem;
+    color: #aabbdd;
+    background: rgba(0,0,0,0.2);
+    padding: 8px;
+    border-radius: 6px;
+    line-height: 1.4;
+  }
+  .message {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 3rem;
+    font-weight: bold;
+    color: #ff00ea;
+    text-shadow: 0 0 20px rgba(255,0,234,0.8);
+    pointer-events: none;
+  }
+  .canvas-container { position: relative; }
+
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: linear-gradient(135deg, #1a1a3e, #2a2f55);
+    border: 2px solid #00f5ff;
+    border-radius: 12px;
+    padding: 24px;
+    width: 90%;
+    max-width: 1100px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 40px rgba(0,245,255,0.4);
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #444a78;
+  }
+  .modal-title {
+    font-size: 1.6rem;
+    background: linear-gradient(90deg, #ffd700, #ff00ea);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .modal-coins {
+    font-size: 1.1rem;
+    color: #ffd700;
+    font-weight: bold;
+  }
+  .close-btn {
+    background: #ff3366;
+    color: #fff;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .shop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    overflow-y: auto;
+    padding: 8px;
+  }
+  .shop-grid::-webkit-scrollbar { width: 10px; }
+  .shop-grid::-webkit-scrollbar-track { background: #1a1a2e; border-radius: 5px; }
+  .shop-grid::-webkit-scrollbar-thumb { background: #444a78; border-radius: 5px; }
+  .cannon-card {
+    background: linear-gradient(135deg, #2a2f55, #3a3f75);
+    border: 2px solid #444a78;
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .cannon-card:hover { transform: translateY(-3px); border-color: #00f5ff; }
+  .cannon-card.owned { border-color: #00ff88; }
+  .cannon-card.equipped { border-color: #ff00ea; box-shadow: 0 0 15px rgba(255,0,234,0.5); }
+  .cannon-card.locked { opacity: 0.6; }
+  .cannon-name { font-weight: bold; font-size: 0.9rem; }
+  .cannon-stats { font-size: 0.72rem; color: #ccd; line-height: 1.5; }
+  .cannon-stats .stat-row { display: flex; justify-content: space-between; }
+  .cannon-action {
+    margin-top: 6px;
+    padding: 5px;
+    border-radius: 4px;
+    font-size: 0.78rem;
+    font-weight: bold;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+  }
+  .buy-btn { background: #ffd700; color: #000; }
+  .buy-btn:hover { background: #ffaa00; }
+  .equip-btn { background: #00f5ff; color: #000; }
+  .equip-btn:hover { background: #00aacc; }
+  .equipped-tag { background: #ff00ea; color: #fff; padding: 5px; border-radius: 4px; text-align: center; font-size: 0.78rem; font-weight: bold; }
+  .insufficient { background: #555; color: #aaa; cursor: not-allowed; }
+  .rarity-common { color: #ffffff; }
+  .rarity-uncommon { color: #44ff44; }
+  .rarity-rare { color: #44aaff; }
+  .rarity-epic { color: #cc66ff; }
+  .rarity-legendary { color: #ffaa00; }
+  .rarity-mythic { color: #ff3366; }
+    .home-screen {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at center, #1a1a3e, #0b0b18 70%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    }
+
+    .home-card {
+    text-align: center;
+    padding: 40px 30px;
+    border-radius: 14px;
+    background: rgba(20, 22, 45, 0.85);
+    border: 2px solid #00f5ff;
+    box-shadow: 0 0 40px rgba(0,245,255,0.3);
+    width: min(520px, 90%);
+    }
+
+    .home-title {
+    font-size: 3rem;
+    font-weight: 900;
+    letter-spacing: 4px;
+    background: linear-gradient(90deg, #00f5ff, #ff00ea, #ffd700);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 10px;
+    animation: glow 2s infinite alternate;
+    }
+
+    .home-subtitle {
+    color: #aabbdd;
+    font-size: 1rem;
+    margin-bottom: 20px;
+    }
+
+    .home-play {
+    background: linear-gradient(90deg, #00f5ff, #ff00ea);
+    border: none;
+    padding: 14px 28px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #000;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+    margin-bottom: 20px;
+    }
+
+    .home-play:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 25px rgba(0,245,255,0.6);
+    }
+
+    .home-info {
+    font-size: 0.85rem;
+    color: #ccd;
+    line-height: 1.6;
+    }
+
+    @keyframes glow {
+    from { filter: drop-shadow(0 0 5px #00f5ff); }
+    to   { filter: drop-shadow(0 0 18px #ff00ea); }
+    }
+</style>
+</head>
+<body>
+    <div id="home-screen" class="home-screen">
+    <div class="home-card">
+        <div class="home-title">NEON SIEGE</div>
+        <div class="home-subtitle">Tower Defense • Cyber Warfare • Endless Waves</div>
+
+        <button id="play-btn" class="home-play">▶ ENTER BATTLE</button>
+
+        <div class="home-info">
+        <p>⚡ Build towers. Survive waves. Upgrade your arsenal.</p>
+        <p>🧠 Unlock 50 cannons in the shop.</p>
+        <p>💀 Don’t let enemies reach the end.</p>
+        </div>
+    </div>
+    </div>
+  <h1>NEON SIEGE</h1>
+  <div class="subtitle">A Tower Defense Game</div>
+
+  <div class="game-wrap">
+    <div class="canvas-container">
+      <canvas id="game" width="800" height="560"></canvas>
+      <div id="message" class="message" style="display:none;"></div>
+    </div>
+
+    <div class="panel">
+      <div class="stats">
+        <div class="stat"><div class="label">Money</div><div class="value" id="stat-money">100</div></div>
+        <div class="stat coins"><div class="label">Coins</div><div class="value" id="stat-coins">0</div></div>
+        <div class="stat hp"><div class="label">HP</div><div class="value" id="stat-lives">100</div></div>
+        <div class="stat"><div class="label">Wave</div><div class="value" id="stat-wave">0</div></div>
+        <div class="stat"><div class="label">Score</div><div class="value" id="stat-score">0</div></div>
+        <div class="stat"><div class="label">Towers</div><div class="value" id="stat-towers">0</div></div>
+      </div>
+
+      <div style="font-size:0.85rem;color:#aabbdd;text-transform:uppercase;letter-spacing:1px;">Equipped Cannon</div>
+      <div class="selected-cannon-display" id="equipped-display">
+        <span class="name" id="equipped-name">Bolt Tower</span>
+        <span class="info" id="equipped-info">Cost: 50 | Dmg: 10</span>
+      </div>
+
+      <button id="shop-btn" class="control-btn gold">🛒 Open Shop (50 Cannons)</button>
+      <button id="start-btn" class="control-btn">Start Wave</button>
+      <button id="pause-btn" class="control-btn danger">Pause</button>
+
+      <div class="instructions">
+        <strong>How to Play:</strong><br>
+        • Click on grass to place cannons<br>
+        • Earn money by killing enemies<br>
+        • Earn coins from wave bonuses & boss kills<br>
+        • Spend coins in shop to unlock 50 cannons<br>
+        • Enemies damage your HP if they reach end<br>
+        • Strong enemies deal more damage!<br>
+        • Right-click cannon to sell (50%)<br>
+        • Boss every 5th wave<br>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="shop-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">⚔️ CANNON SHOP</div>
+        <div class="modal-coins">🪙 Coins: <span id="modal-coins">0</span></div>
+        <button class="close-btn" id="close-shop">Close ✕</button>
+      </div>
+      <div class="shop-grid" id="shop-grid"></div>
+    </div>
+  </div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const TILE = 40;
+
+const homeScreen = document.getElementById('home-screen');
+
+const PATH = [
+  {x: 0,   y: 100},
+  {x: 200, y: 100},
+  {x: 200, y: 300},
+  {x: 500, y: 300},
+  {x: 500, y: 100},
+  {x: 700, y: 100},
+  {x: 700, y: 460},
+  {x: 300, y: 460},
+  {x: 300, y: 380},
+  {x: 100, y: 380},
+  {x: 100, y: 540},
+  {x: 800, y: 540}
+];
+
+const RARITY = {
+  common:    { name: 'Common',    class: 'rarity-common' },
+  uncommon:  { name: 'Uncommon',  class: 'rarity-uncommon' },
+  rare:      { name: 'Rare',      class: 'rarity-rare' },
+  epic:      { name: 'Epic',      class: 'rarity-epic' },
+  legendary: { name: 'Legendary', class: 'rarity-legendary' },
+  mythic:    { name: 'Mythic',    class: 'rarity-mythic' }
+};
+
+const CANNONS = [
+  { id: 'c01', name: 'Bolt Tower',         cost: 50,   range: 110, damage: 10,  fireRate: 0.40, color: '#00f5ff', size: 16, splash: 0,  coinPrice: 0,    rarity: 'common' },
+  { id: 'c02', name: 'Spark Cannon',       cost: 60,   range: 120, damage: 12,  fireRate: 0.38, color: '#33ddff', size: 16, splash: 0,  coinPrice: 5,    rarity: 'common' },
+  { id: 'c03', name: 'Pebble Slinger',     cost: 40,   range: 100, damage: 8,   fireRate: 0.30, color: '#aaaaaa', size: 14, splash: 0,  coinPrice: 5,    rarity: 'common' },
+  { id: 'c04', name: 'Wood Crossbow',      cost: 70,   range: 140, damage: 15,  fireRate: 0.50, color: '#996633', size: 15, splash: 0,  coinPrice: 8,    rarity: 'common' },
+  { id: 'c05', name: 'Iron Cannon',        cost: 90,   range: 110, damage: 20,  fireRate: 0.55, color: '#888899', size: 17, splash: 0,  coinPrice: 12,   rarity: 'common' },
+  { id: 'c06', name: 'Sniper Tower',       cost: 100,  range: 220, damage: 40,  fireRate: 1.40, color: '#ff00ea', size: 16, splash: 0,  coinPrice: 0,    rarity: 'uncommon' },
+  { id: 'c07', name: 'Cannon Tower',       cost: 150,  range: 90,  damage: 25,  fireRate: 1.00, color: '#ffaa00', size: 18, splash: 50, coinPrice: 0,    rarity: 'uncommon' },
+  { id: 'c08', name: 'Frost Beam',         cost: 120,  range: 130, damage: 18,  fireRate: 0.45, color: '#88eeff', size: 16, splash: 0,  coinPrice: 18,   rarity: 'uncommon' },
+  { id: 'c09', name: 'Ember Lobber',       cost: 130,  range: 100, damage: 22,  fireRate: 0.80, color: '#ff6633', size: 17, splash: 35, coinPrice: 22,   rarity: 'uncommon' },
+  { id: 'c10', name: 'Twin Barrel',        cost: 140,  range: 130, damage: 14,  fireRate: 0.25, color: '#66ddaa', size: 16, splash: 0,  coinPrice: 25,   rarity: 'uncommon' },
+  { id: 'c11', name: 'Long Rifle',         cost: 160,  range: 250, damage: 50,  fireRate: 1.60, color: '#cc00cc', size: 16, splash: 0,  coinPrice: 30,   rarity: 'uncommon' },
+  { id: 'c12', name: 'Mortar',             cost: 180,  range: 160, damage: 35,  fireRate: 1.30, color: '#ddaa44', size: 18, splash: 60, coinPrice: 35,   rarity: 'uncommon' },
+  { id: 'c13', name: 'Chain Gun',          cost: 200,  range: 140, damage: 8,   fireRate: 0.10, color: '#ff8844', size: 17, splash: 0,  coinPrice: 40,   rarity: 'rare' },
+  { id: 'c14', name: 'Plasma Caster',      cost: 220,  range: 150, damage: 45,  fireRate: 0.70, color: '#aa00ff', size: 17, splash: 0,  coinPrice: 50,   rarity: 'rare' },
+  { id: 'c15', name: 'Tesla Coil',         cost: 240,  range: 130, damage: 30,  fireRate: 0.40, color: '#ffff44', size: 17, splash: 25, coinPrice: 55,   rarity: 'rare' },
+  { id: 'c16', name: 'Cryo Blaster',       cost: 230,  range: 140, damage: 35,  fireRate: 0.60, color: '#00ccff', size: 17, splash: 30, coinPrice: 60,   rarity: 'rare' },
+  { id: 'c17', name: 'Pyro Cannon',        cost: 250,  range: 120, damage: 40,  fireRate: 0.65, color: '#ff3300', size: 18, splash: 45, coinPrice: 65,   rarity: 'rare' },
+  { id: 'c18', name: 'Toxic Spitter',      cost: 220,  range: 130, damage: 28,  fireRate: 0.50, color: '#88ff00', size: 17, splash: 20, coinPrice: 60,   rarity: 'rare' },
+  { id: 'c19', name: 'Storm Caller',       cost: 280,  range: 170, damage: 38,  fireRate: 0.75, color: '#5577ff', size: 18, splash: 0,  coinPrice: 75,   rarity: 'rare' },
+  { id: 'c20', name: 'Railgun',            cost: 300,  range: 280, damage: 80,  fireRate: 1.80, color: '#ff44aa', size: 17, splash: 0,  coinPrice: 80,   rarity: 'rare' },
+  { id: 'c21', name: 'Gatling Turret',     cost: 320,  range: 150, damage: 12,  fireRate: 0.08, color: '#ffaa66', size: 18, splash: 0,  coinPrice: 90,   rarity: 'rare' },
+  { id: 'c22', name: 'Howitzer',           cost: 340,  range: 200, damage: 70,  fireRate: 1.50, color: '#aa6633', size: 19, splash: 80, coinPrice: 100,  rarity: 'rare' },
+  { id: 'c23', name: 'Solar Beam',         cost: 360,  range: 180, damage: 55,  fireRate: 0.90, color: '#ffee00', size: 18, splash: 0,  coinPrice: 110,  rarity: 'epic' },
+  { id: 'c24', name: 'Lunar Bow',          cost: 360,  range: 220, damage: 60,  fireRate: 1.10, color: '#ddddff', size: 17, splash: 0,  coinPrice: 115,  rarity: 'epic' },
+  { id: 'c25', name: 'Void Ripper',        cost: 400,  range: 160, damage: 75,  fireRate: 0.80, color: '#660066', size: 18, splash: 40, coinPrice: 130,  rarity: 'epic' },
+  { id: 'c26', name: 'Lightning Spire',    cost: 380,  range: 150, damage: 50,  fireRate: 0.45, color: '#ffff88', size: 18, splash: 50, coinPrice: 125,  rarity: 'epic' },
+  { id: 'c27', name: 'Inferno Gate',       cost: 420,  range: 140, damage: 65,  fireRate: 0.70, color: '#ff5500', size: 19, splash: 60, coinPrice: 140,  rarity: 'epic' },
+  { id: 'c28', name: 'Glacier Forge',      cost: 410,  range: 160, damage: 60,  fireRate: 0.65, color: '#66eeff', size: 19, splash: 55, coinPrice: 140,  rarity: 'epic' },
+  { id: 'c29', name: 'Photon Lance',       cost: 440,  range: 240, damage: 90,  fireRate: 1.40, color: '#ff66ff', size: 17, splash: 0,  coinPrice: 150,  rarity: 'epic' },
+  { id: 'c30', name: 'Quantum Pulse',      cost: 460,  range: 170, damage: 70,  fireRate: 0.55, color: '#00ffaa', size: 18, splash: 35, coinPrice: 160,  rarity: 'epic' },
+  { id: 'c31', name: 'Hydra Cannon',       cost: 480,  range: 150, damage: 30,  fireRate: 0.15, color: '#22cc88', size: 19, splash: 0,  coinPrice: 170,  rarity: 'epic' },
+  { id: 'c32', name: 'Reaper Scythe',      cost: 500,  range: 130, damage: 100, fireRate: 0.90, color: '#999999', size: 19, splash: 30, coinPrice: 180,  rarity: 'epic' },
+  { id: 'c33', name: 'Phoenix Bow',        cost: 520,  range: 200, damage: 85,  fireRate: 0.85, color: '#ff9933', size: 18, splash: 50, coinPrice: 200,  rarity: 'legendary' },
+  { id: 'c34', name: 'Dragon Flame',       cost: 550,  range: 160, damage: 95,  fireRate: 0.75, color: '#cc1100', size: 20, splash: 70, coinPrice: 220,  rarity: 'legendary' },
+  { id: 'c35', name: 'Frostfang',          cost: 540,  range: 180, damage: 90,  fireRate: 0.70, color: '#aaffff', size: 19, splash: 60, coinPrice: 220,  rarity: 'legendary' },
+  { id: 'c36', name: 'Stormbringer',       cost: 580,  range: 200, damage: 100, fireRate: 0.80, color: '#7799ff', size: 19, splash: 50, coinPrice: 240,  rarity: 'legendary' },
+  { id: 'c37', name: 'Soul Reaver',        cost: 600,  range: 170, damage: 120, fireRate: 0.95, color: '#9900cc', size: 19, splash: 40, coinPrice: 260,  rarity: 'legendary' },
+  { id: 'c38', name: 'Nova Burst',         cost: 620,  range: 150, damage: 110, fireRate: 0.65, color: '#ffcc00', size: 19, splash: 90, coinPrice: 280,  rarity: 'legendary' },
+  { id: 'c39', name: 'Thunder Hammer',     cost: 650,  range: 140, damage: 140, fireRate: 1.00, color: '#ddff44', size: 20, splash: 80, coinPrice: 300,  rarity: 'legendary' },
+  { id: 'c40', name: 'Black Hole Gun',     cost: 700,  range: 180, damage: 130, fireRate: 1.20, color: '#220033', size: 20, splash: 100,coinPrice: 320,  rarity: 'legendary' },
+  { id: 'c41', name: 'Star Forge',         cost: 720,  range: 220, damage: 150, fireRate: 1.10, color: '#ffeecc', size: 19, splash: 60, coinPrice: 350,  rarity: 'legendary' },
+  { id: 'c42', name: 'Galaxy Cannon',      cost: 760,  range: 240, damage: 160, fireRate: 1.20, color: '#aa44ff', size: 20, splash: 70, coinPrice: 380,  rarity: 'legendary' },
+  { id: 'c43', name: 'Eclipse Beam',       cost: 800,  range: 260, damage: 180, fireRate: 1.30, color: '#3300aa', size: 20, splash: 50, coinPrice: 420,  rarity: 'mythic' },
+  { id: 'c44', name: 'Cosmic Devourer',    cost: 850,  range: 200, damage: 200, fireRate: 1.10, color: '#ff00aa', size: 21, splash: 100,coinPrice: 480,  rarity: 'mythic' },
+  { id: 'c45', name: 'Time Splitter',      cost: 900,  range: 180, damage: 170, fireRate: 0.50, color: '#00ffee', size: 20, splash: 60, coinPrice: 520,  rarity: 'mythic' },
+  { id: 'c46', name: 'Reality Warper',     cost: 950,  range: 210, damage: 220, fireRate: 1.00, color: '#ff66cc', size: 21, splash: 80, coinPrice: 580,  rarity: 'mythic' },
+  { id: 'c47', name: 'Genesis Core',       cost: 1000, range: 230, damage: 240, fireRate: 1.05, color: '#ffffff', size: 21, splash: 90, coinPrice: 650,  rarity: 'mythic' },
+  { id: 'c48', name: 'Apocalypse Engine',  cost: 1100, range: 200, damage: 280, fireRate: 1.20, color: '#ff0000', size: 22, splash: 110,coinPrice: 750,  rarity: 'mythic' },
+  { id: 'c49', name: 'Infinity Cannon',    cost: 1200, range: 260, damage: 300, fireRate: 1.30, color: '#ffaaff', size: 22, splash: 100,coinPrice: 850,  rarity: 'mythic' },
+  { id: 'c50', name: 'God Slayer',         cost: 1500, range: 280, damage: 400, fireRate: 1.40, color: '#ffd700', size: 23, splash: 120,coinPrice: 1000, rarity: 'mythic' }
+];
+
+const state = {
+  money: 100,
+  coins: 0,
+  lives: 100,
+  maxLives: 100,
+  wave: 0,
+  score: 0,
+  towers: [],
+  enemies: [],
+  projectiles: [],
+  effects: [],
+  damageNumbers: [],
+  selectedCannon: 'c01',
+  ownedCannons: ['c01', 'c06', 'c07'],
+  mouseX: 0,
+  mouseY: 0,
+  paused: false,
+  running: false,
+  spawning: false,
+  spawnQueue: [],
+  spawnTimer: 0,
+  gameOver: false,
+  lastTime: 0,
+  gameStarted: false,
+};
+
+function getCannon(id) { return CANNONS.find(c => c.id === id); }
+function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+
+function pointOnPath(x, y, threshold = 28) {
+  for (let i = 0; i < PATH.length - 1; i++) {
+    const a = PATH[i], b = PATH[i+1];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len2 = dx*dx + dy*dy;
+    let t = ((x - a.x) * dx + (y - a.y) * dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    const px = a.x + t*dx, py = a.y + t*dy;
+    if (Math.hypot(x - px, y - py) < threshold) return true;
+  }
+  return false;
+}
+
+class Enemy {
+  constructor(type, waveMultiplier) {
+    this.type = type;
+    if (type === 'basic') {
+      this.maxHp = 30 * waveMultiplier; this.speed = 60; this.reward = 8; this.color = '#ff5577'; this.size = 12; this.damage = 3;
+    } else if (type === 'fast') {
+      this.maxHp = 18 * waveMultiplier; this.speed = 120; this.reward = 10; this.color = '#ffdd44'; this.size = 10; this.damage = 2;
+    } else if (type === 'tank') {
+      this.maxHp = 120 * waveMultiplier; this.speed = 35; this.reward = 25; this.color = '#88ff44'; this.size = 16; this.damage = 8;
+    } else if (type === 'elite') {
+      this.maxHp = 200 * waveMultiplier; this.speed = 70; this.reward = 40; this.color = '#aa44ff'; this.size = 15; this.damage = 12;
+    } else if (type === 'boss') {
+      this.maxHp = 800 * waveMultiplier; this.speed = 30; this.reward = 150; this.color = '#ff0044'; this.size = 24; this.damage = 25; this.coinReward = 10;
+    }
+    this.hp = this.maxHp;
+    this.x = PATH[0].x;
+    this.y = PATH[0].y;
+    this.pathIdx = 0;
+    this.dead = false;
+    this.reachedEnd = false;
+  }
+  update(dt) {
+    if (this.pathIdx >= PATH.length - 1) {
+      this.reachedEnd = true;
+      return;
+    }
+    const target = PATH[this.pathIdx + 1];
+    const dx = target.x - this.x, dy = target.y - this.y;
+    const d = Math.hypot(dx, dy);
+    const move = this.speed * dt;
+    if (move >= d) {
+      this.x = target.x; this.y = target.y;
+      this.pathIdx++;
+    } else {
+      this.x += (dx/d) * move;
+      this.y += (dy/d) * move;
+    }
+  }
+  draw() {
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    if (this.type === 'boss') {
+      ctx.strokeStyle = '#ff0';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size + 4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    const w = this.type === 'boss' ? 50 : 28, h = this.type === 'boss' ? 6 : 4;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(this.x - w/2, this.y - this.size - 10, w, h);
+    ctx.fillStyle = this.hp > this.maxHp * 0.5 ? '#0f0' : (this.hp > this.maxHp * 0.25 ? '#ff0' : '#f00');
+    ctx.fillRect(this.x - w/2, this.y - this.size - 10, w * (this.hp/this.maxHp), h);
+  }
+  takeDamage(d) {
+    this.hp -= d;
+    state.damageNumbers.push({x: this.x + (Math.random()-0.5)*10, y: this.y - this.size - 5, value: Math.round(d), life: 0.7, maxLife: 0.7, vy: -30});
+    if (this.hp <= 0 && !this.dead) {
+      this.dead = true;
+      state.money += this.reward;
+      state.score += this.reward;
+      if (this.coinReward) state.coins += this.coinReward;
+      if (Math.random() < 0.05) state.coins += 1;
+    }
+  }
+}
+
+class Tower {
+  constructor(x, y, cannonId) {
+    this.x = x; this.y = y;
+    this.cannonId = cannonId;
+    const cfg = getCannon(cannonId);
+    this.range = cfg.range;
+    this.damage = cfg.damage;
+    this.fireRate = cfg.fireRate;
+    this.color = cfg.color;
+    this.size = cfg.size;
+    this.splash = cfg.splash || 0;
+    this.cost = cfg.cost;
+    this.cooldown = 0;
+    this.angle = 0;
+  }
+  update(dt) {
+    this.cooldown -= dt;
+    let target = null, bestD = Infinity;
+    for (const e of state.enemies) {
+      if (e.dead || e.reachedEnd) continue;
+      const d = dist(this, e);
+      if (d <= this.range && d < bestD) { bestD = d; target = e; }
+    }
+    if (target) {
+      this.angle = Math.atan2(target.y - this.y, target.x - this.x);
+      if (this.cooldown <= 0) {
+        this.shoot(target);
+        this.cooldown = this.fireRate;
+      }
+    }
+  }
+  shoot(target) {
+    state.projectiles.push(new Projectile(this.x, this.y, target, this.damage, this.color, this.splash));
+  }
+  draw() {
+    ctx.fillStyle = '#3a3f65';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size + 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.angle);
+    ctx.fillStyle = '#222';
+    ctx.fillRect(0, -3, this.size + 6, 6);
+    ctx.restore();
+  }
+  drawRange() {
+    ctx.strokeStyle = this.color + '88';
+    ctx.fillStyle = this.color + '22';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+}
+
+class Projectile {
+  constructor(x, y, target, damage, color, splash) {
+    this.x = x; this.y = y;
+    this.target = target;
+    this.damage = damage;
+    this.color = color;
+    this.splash = splash;
+    this.speed = 500;
+    this.dead = false;
+  }
+  update(dt) {
+    if (!this.target || this.target.dead || this.target.reachedEnd) {
+      this.dead = true; return;
+    }
+    const dx = this.target.x - this.x, dy = this.target.y - this.y;
+    const d = Math.hypot(dx, dy);
+    const move = this.speed * dt;
+    if (move >= d) {
+      this.hit();
+    } else {
+      this.x += (dx/d) * move;
+      this.y += (dy/d) * move;
+    }
+  }
+  hit() {
+    if (this.splash > 0) {
+      for (const e of state.enemies) {
+        if (e.dead || e.reachedEnd) continue;
+        if (dist(this, e) <= this.splash) e.takeDamage(this.damage);
+      }
+      state.effects.push({x: this.x, y: this.y, r: 5, maxR: this.splash, color: this.color, life: 0.3, maxLife: 0.3});
+    } else {
+      this.target.takeDamage(this.damage);
+    }
+    this.dead = true;
+  }
+  draw() {
+    ctx.fillStyle = this.color;
+    ctx.shadowColor = this.color;
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+}
+
+function startWave() {
+  if (state.spawning || state.gameOver) return;
+  state.wave++;
+  state.running = true;
+  const mult = 1 + (state.wave - 1) * 0.30;
+  const queue = [];
+  const baseCount = 8 + state.wave * 2;
+  for (let i = 0; i < baseCount; i++) queue.push({type: 'basic', mult});
+  if (state.wave >= 2) for (let i = 0; i < state.wave * 2; i++) queue.push({type: 'fast', mult});
+  if (state.wave >= 3) for (let i = 0; i < Math.floor(state.wave / 2); i++) queue.push({type: 'tank', mult});
+  if (state.wave >= 5) for (let i = 0; i < Math.floor(state.wave / 3); i++) queue.push({type: 'elite', mult});
+  if (state.wave % 5 === 0) queue.push({type: 'boss', mult: mult * 1.2});
+  for (let i = queue.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [queue[i], queue[j]] = [queue[j], queue[i]];
+  }
+  state.spawnQueue = queue;
+  state.spawnTimer = 0;
+  state.spawning = true;
+}
+
+function drawBackground() {
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < canvas.width; x += TILE) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for (let y = 0; y < canvas.height; y += TILE) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+}
+
+function drawPath() {
+  ctx.strokeStyle = '#3a3f75';
+  ctx.lineWidth = 50;
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(PATH[0].x, PATH[0].y);
+  for (let i = 1; i < PATH.length; i++) ctx.lineTo(PATH[i].x, PATH[i].y);
+  ctx.stroke();
+  ctx.strokeStyle = '#5a5f95';
+  ctx.lineWidth = 40;
+  ctx.beginPath();
+  ctx.moveTo(PATH[0].x, PATH[0].y);
+  for (let i = 1; i < PATH.length; i++) ctx.lineTo(PATH[i].x, PATH[i].y);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([10, 10]);
+  ctx.beginPath();
+  ctx.moveTo(PATH[0].x, PATH[0].y);
+  for (let i = 1; i < PATH.length; i++) ctx.lineTo(PATH[i].x, PATH[i].y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#00ff88';
+  ctx.beginPath(); ctx.arc(PATH[0].x, PATH[0].y, 14, 0, Math.PI * 2); ctx.fill();
+  const end = PATH[PATH.length - 1];
+  ctx.fillStyle = '#ff3366';
+  ctx.beginPath(); ctx.arc(end.x, end.y, 14, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('START', PATH[0].x + 30, PATH[0].y + 4);
+  ctx.fillText('END', end.x - 30, end.y + 4);
+}
+
+function drawPlacementPreview() {
+  if (!state.selectedCannon || state.gameOver) return;
+  const cfg = getCannon(state.selectedCannon);
+  const onPath = pointOnPath(state.mouseX, state.mouseY);
+  const tooClose = state.towers.some(t => dist(t, {x: state.mouseX, y: state.mouseY}) < 30);
+  const valid = !onPath && !tooClose && state.money >= cfg.cost
+                && state.mouseX > 20 && state.mouseX < canvas.width - 20
+                && state.mouseY > 20 && state.mouseY < canvas.height - 20;
+  ctx.strokeStyle = valid ? '#00ff88aa' : '#ff3366aa';
+  ctx.fillStyle = valid ? '#00ff8822' : '#ff336622';
+  ctx.beginPath();
+  ctx.arc(state.mouseX, state.mouseY, cfg.range, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = valid ? cfg.color + 'cc' : '#ff336688';
+  ctx.beginPath();
+  ctx.arc(state.mouseX, state.mouseY, cfg.size, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawEffects(dt) {
+  for (const e of state.effects) {
+    e.life -= dt;
+    const t = 1 - e.life / e.maxLife;
+    const r = e.r + (e.maxR - e.r) * t;
+    ctx.strokeStyle = e.color + Math.floor((1-t) * 255).toString(16).padStart(2,'0');
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  state.effects = state.effects.filter(e => e.life > 0);
+}
+
+function drawDamageNumbers(dt) {
+  for (const d of state.damageNumbers) {
+    d.life -= dt;
+    d.y += d.vy * dt;
+    const alpha = Math.floor((d.life / d.maxLife) * 255).toString(16).padStart(2,'0');
+    ctx.fillStyle = '#ffff44' + alpha;
+    ctx.strokeStyle = '#000000' + alpha;
+    ctx.lineWidth = 2;
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.strokeText(d.value, d.x, d.y);
+    ctx.fillText(d.value, d.x, d.y);
+  }
+  state.damageNumbers = state.damageNumbers.filter(d => d.life > 0);
+}
+
+function gameLoop(timestamp) {
+  const dt = Math.min((timestamp - state.lastTime) / 1000, 0.05);
+  state.lastTime = timestamp;
+  if (!state.paused && !state.gameOver) {
+    update(dt);
+  }
+  render(dt);
+  requestAnimationFrame(gameLoop);
+}
+
+function update(dt) {
+    if (!state.gameStarted) return;
+
+  if (state.spawning) {
+    state.spawnTimer -= dt;
+    if (state.spawnTimer <= 0 && state.spawnQueue.length > 0) {
+      const next = state.spawnQueue.shift();
+      state.enemies.push(new Enemy(next.type, next.mult));
+      state.spawnTimer = 0.6;
+    }
+    if (state.spawnQueue.length === 0) state.spawning = false;
+  }
+  for (const t of state.towers) t.update(dt);
+  for (const e of state.enemies) {
+    e.update(dt);
+    if (e.reachedEnd) {
+      state.lives -= e.damage;
+      if (state.lives <= 0) {
+        state.lives = 0;
+        gameOver();
+      }
+    }
+  }
+  state.enemies = state.enemies.filter(e => !e.dead && !e.reachedEnd);
+  for (const p of state.projectiles) p.update(dt);
+  state.projectiles = state.projectiles.filter(p => !p.dead);
+  if (!state.spawning && state.enemies.length === 0 && state.running) {
+    state.running = false;
+    state.money += 25 + state.wave * 5;
+    state.coins += 2 + Math.floor(state.wave / 2);
+  }
+  updateUI();
+}
+
+function render(dt) {
+  drawBackground();
+  drawPath();
+  for (const t of state.towers) t.draw();
+  const hovered = state.towers.find(t => dist(t, {x: state.mouseX, y: state.mouseY}) < t.size + 4);
+  if (hovered) hovered.drawRange();
+  for (const e of state.enemies) e.draw();
+  for (const p of state.projectiles) p.draw();
+  drawEffects(dt);
+  drawDamageNumbers(dt);
+  drawPlacementPreview();
+}
+
+function updateUI() {
+  document.getElementById('stat-money').textContent = state.money;
+  document.getElementById('stat-coins').textContent = state.coins;
+  document.getElementById('stat-lives').textContent = state.lives;
+  document.getElementById('stat-wave').textContent = state.wave;
+  document.getElementById('stat-score').textContent = state.score;
+  document.getElementById('stat-towers').textContent = state.towers.length;
+  const eq = getCannon(state.selectedCannon);
+  document.getElementById('equipped-name').textContent = eq.name;
+  document.getElementById('equipped-info').textContent = `Cost: $${eq.cost} | Dmg: ${eq.damage} | Rng: ${eq.range}`;
+}
+
+function showMessage(text, color = '#ff00ea') {
+  const m = document.getElementById('message');
+  m.textContent = text;
+  m.style.color = color;
+  m.style.display = 'block';
+}
+
+function gameOver() {
+  state.gameOver = true;
+  showMessage('GAME OVER', '#ff3366');
+}
+
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  state.mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+  state.mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+});
+
+canvas.addEventListener('click', e => {
+  if (state.gameOver) return;
+  if (!state.selectedCannon) return;
+  const cfg = getCannon(state.selectedCannon);
+  if (state.money < cfg.cost) return;
+  if (pointOnPath(state.mouseX, state.mouseY)) return;
+  if (state.mouseX < 20 || state.mouseX > canvas.width - 20) return;
+  if (state.mouseY < 20 || state.mouseY > canvas.height - 20) return;
+  if (state.towers.some(t => dist(t, {x: state.mouseX, y: state.mouseY}) < 30)) return;
+  state.towers.push(new Tower(state.mouseX, state.mouseY, state.selectedCannon));
+  state.money -= cfg.cost;
+});
+
+canvas.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+  for (let i = 0; i < state.towers.length; i++) {
+    const t = state.towers[i];
+    if (dist(t, {x: mx, y: my}) < t.size + 4) {
+      state.money += Math.floor(t.cost / 2);
+      state.towers.splice(i, 1);
+      break;
+    }
+  }
+});
+
+document.getElementById('start-btn').addEventListener('click', startWave);
+document.getElementById('pause-btn').addEventListener('click', () => {
+  state.paused = !state.paused;
+  document.getElementById('pause-btn').textContent = state.paused ? 'Resume' : 'Pause';
+});
+
+const shopModal = document.getElementById('shop-modal');
+const shopGrid = document.getElementById('shop-grid');
+document.getElementById('shop-btn').addEventListener('click', () => {
+  shopModal.classList.add('active');
+  state.paused = true;
+  document.getElementById('pause-btn').textContent = 'Resume';
+  renderShop();
+});
+document.getElementById('close-shop').addEventListener('click', () => {
+  shopModal.classList.remove('active');
+});
+
+function renderShop() {
+  document.getElementById('modal-coins').textContent = state.coins;
+  shopGrid.innerHTML = '';
+  CANNONS.forEach(c => {
+    const owned = state.ownedCannons.includes(c.id);
+    const equipped = state.selectedCannon === c.id;
+    const card = document.createElement('div');
+    card.className = 'cannon-card' + (owned ? ' owned' : ' locked') + (equipped ? ' equipped' : '');
+    const rar = RARITY[c.rarity];
+    card.innerHTML = `
+      <div class="cannon-name">${c.name}</div>
+      <div class="${rar.class}" style="font-size:0.7rem;font-weight:bold;">★ ${rar.name}</div>
+      <div class="cannon-stats">
+        <div class="stat-row"><span>💰 Cost:</span><span>$${c.cost}</span></div>
+        <div class="stat-row"><span>⚔️ Damage:</span><span>${c.damage}</span></div>
+        <div class="stat-row"><span>🎯 Range:</span><span>${c.range}</span></div>
+        <div class="stat-row"><span>⏱️ Fire:</span><span>${c.fireRate.toFixed(2)}s</span></div>
+        <div class="stat-row"><span>💥 Splash:</span><span>${c.splash || 'None'}</span></div>
+      </div>
+    `;
+    const btn = document.createElement('button');
+    btn.className = 'cannon-action';
+    if (equipped) {
+      btn.className = 'equipped-tag';
+      btn.textContent = '✓ EQUIPPED';
+      btn.disabled = true;
+    } else if (owned) {
+      btn.className = 'cannon-action equip-btn';
+      btn.textContent = 'EQUIP';
+      btn.onclick = () => {
+        state.selectedCannon = c.id;
+        renderShop();
+        updateUI();
+      };
+    } else {
+      if (state.coins >= c.coinPrice) {
+        btn.className = 'cannon-action buy-btn';
+        btn.textContent = `BUY 🪙 ${c.coinPrice}`;
+        btn.onclick = () => {
+          if (state.coins >= c.coinPrice) {
+            state.coins -= c.coinPrice;
+            state.ownedCannons.push(c.id);
+            renderShop();
+            updateUI();
+          }
+        };
+      } else {
+        btn.className = 'cannon-action insufficient';
+        btn.textContent = `🪙 ${c.coinPrice} (Need ${c.coinPrice - state.coins})`;
+        btn.disabled = true;
+      }
+    }
+    card.appendChild(btn);
+    shopGrid.appendChild(card);
+  });
+}
+
+updateUI();
+requestAnimationFrame(gameLoop);
+
+const playBtn = document.getElementById('play-btn');
+
+state.gameStarted = false;
+
+playBtn.addEventListener('click', () => {
+  homeScreen.style.display = 'none';
+  state.gameStarted = true;
+  startWave();
+});
+</script>
+</body>
+</html>
